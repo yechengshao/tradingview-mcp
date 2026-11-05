@@ -581,3 +581,11 @@ MIT License — see [LICENSE](https://github.com/atilaahmettaner/tradingview-mcp
 ---
 
 *Disclaimer: This tool is for educational and research purposes only. It does not constitute financial advice. Always do your own research before making investment decisions.*
+
+## AWS Lambda (optional)
+
+See [the Lambda deployment guide](docs/lambda-deployment.md) for the separate ARM64 service image, native provider environment and deploy/update/rollback workflow. [Spec 001](specs/001-add-lambda-deployment/spec.md) covers this project's MCP service, ECR publication and publishing IAM. Existing Docker and local launch options remain available.
+
+Authentication and subscriptions belong to the separate [MCP Auth and Subscriptions project](../mcp-auth-subscriptions/README.md). Its [spec 002](../mcp-auth-subscriptions/specs/002-authentication-api-access/spec.md) owns Cognito/OAuth, onboarding, REST gateway, authorizer and subscriber usage plans; [spec 003](../mcp-auth-subscriptions/specs/003-billing-subscriptions/spec.md) owns Stripe billing and entitlement publication. Those components remain planned. This service contains no authentication/billing logic and supplies only the [service integration interface](specs/001-add-lambda-deployment/contracts/rest-migration.md).
+
+The current Lambda guide/runtime/verifier describe the legacy HTTP API profile. The new REST endpoint requires separately validated service integration and an explicit secured cutover; existing local evidence does not establish REST/OAuth/payment readiness.

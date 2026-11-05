@@ -1,0 +1,7 @@
+# Infrastructure Ownership After the Feature Split
+
+- Spec 001 owns ECR, MCP runtime, service image publication and scoped publishing IAM. Delivered legacy HTTP routes/integration/permissions remain service-owned; the new service-only REST runtime supplies only its function/live alias and release/log outputs.
+- [Spec 002](../../../../mcp-auth-subscriptions/specs/002-authentication-api-access/spec.md) owns Cognito, OAuth coordination/client tokens, the independent subscription authorizer and the new REST API/named stage/native usage plans. It owns every REST method/integration/invocation permission, discovery and gateway response. The earlier HTTP API adoption/same-endpoint plan is superseded by explicit cutover. Its [infrastructure contract](../../../../mcp-auth-subscriptions/specs/002-authentication-api-access/contracts/managed-infrastructure.md) defines the target boundary.
+- [Spec 003](../../../../mcp-auth-subscriptions/specs/003-billing-subscriptions/spec.md) owns the separate billing Lambda, plan-selection/order/Stripe operations, DynamoDB and entitlement publication. Access reads current decisions and owns native key/grant activation; MCP reads neither.
+
+[The migration map](../../scope-migration.md) preserves task history; [REST service handoff](rest-migration.md) defines the pending runtime/report additions. Documentation changes do not implement access/billing resources, migrate an endpoint or establish live acceptance.

@@ -1,0 +1,14 @@
+# Project-scoped GitHub tools for Codex CLI and the Codex IDE extension.
+# Export GITHUB_PAT_TOKEN in the environment that launches Codex.
+# The value must be a GitHub personal access token; keep it out of this file.
+# Setup: https://github.com/github/github-mcp-server/blob/main/docs/installation-guides/install-codex.md
+[mcp_servers.github]
+url = "https://api.githubcopilot.com/mcp/"
+bearer_token_env_var = "GITHUB_PAT_TOKEN"
+
+# AWS Agent Toolkit's managed MCP server, using browser-based AWS sign-in.
+# Authenticate from this project with: codex mcp login aws
+# The endpoint region is independent of your AWS resources' region.
+# Setup: https://docs.aws.amazon.com/agent-toolkit/latest/userguide/getting-started-aws-mcp-server.html
+[mcp_servers.aws]
+url = "https://aws-mcp.us-east-1.api.aws/mcp?oauth=initialize"

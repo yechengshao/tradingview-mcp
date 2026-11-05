@@ -1,0 +1,14 @@
+{
+  "python": {
+    "image": "registry-1.docker.io/library/python:3.11-slim",
+    "arm64_digest": "sha256:8f867a1f16776618234a2d0ef41fbb991d0bd0b142c8a95bc37456d8e47104cf"
+  },
+  "uv": {
+    "image": "ghcr.io/astral-sh/uv:0.13.1",
+    "arm64_digest": "sha256:c4ca260ce2a921fb9ea59c6619d4c88c34990b4272524115ab61a70b647d2755"
+  },
+  "adapter": {
+    "image": "public.ecr.aws/awsguru/aws-lambda-adapter:1.1.0",
+    "arm64_digest": "sha256:98d6d1dc9ad3f18c6af7baaa397fb033a57d82f5bffb58ff33bef1c2e1f4f0fe"
+  }
+}

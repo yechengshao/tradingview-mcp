@@ -245,3 +245,13 @@ dist/
 
 # Remotion promo video project (source + renders kept out of the repo)
 promo/
+
+# Local Lambda deployment inputs and evidence
+.env.*
+!.env.example
+*.parameters.private.json
+lambda-evidence/
+Thumbs.db
+*.tmp
+*.swp
+.vscode/

@@ -1,0 +1,28 @@
+name: Lambda deployment contracts
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: '0.13.1'
+          python-version: '3.11'
+          enable-cache: true
+      - run: uv sync --dev --group deployment --locked
+      - name: Require pinned baseline source
+        run: |
+          uv run --locked --group deployment python -c "import json,subprocess; d=json.load(open('tests/integration/support/baseline.json')); subprocess.run(['git','cat-file','-e',d['baseline_ref']+'^{commit}'],check=True)"
+      - name: Hermetic runtime, report, infrastructure and verifier checks
+        run: |
+          uv run --locked --group deployment pytest -q tests/unit/test_lambda_server.py tests/unit/test_verification_report.py tests/unit/test_verify_lambda.py tests/integration/test_lambda_transport.py tests/integration/test_deployment_contract.py tests/integration/test_release_workflow_contract.py tests/integration/test_lambda_publication.py tests/integration/test_lambda_verifier.py tests/integration/test_original_transports.py -k 'not original_image_behavior'
+      - run: uv run --locked --group deployment cfn-lint infra/lambda/ecr.yaml infra/lambda/runtime.yaml

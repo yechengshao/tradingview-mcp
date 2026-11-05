@@ -1,0 +1,1229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tradingview-mcp:lambda-verification-report:v1",
+  "title": "Lambda deployment verification report v1",
+  "description": "Planned verification contract for a Lambda service behind externally supplied Cognito and an API Gateway custom authorizer. Local checks cannot establish gateway authorization; no report is evidence until its referenced checks actually run.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "mode": {
+      "enum": [
+        "local",
+        "live",
+        "combine"
+      ]
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "release": {
+      "$ref": "#/$defs/release"
+    },
+    "target": {
+      "$ref": "#/$defs/target"
+    },
+    "additional_targets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/target"
+      }
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 16,
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/stage"
+      },
+      "allOf": [
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "artifact_startup"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "health"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "client_initialization"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "tool_discovery"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "tool_execution"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "authorization"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "invalid_tool_input"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "upstream_failure"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "cold_start"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "concurrent_clients"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "docker_compatibility"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "local_transport_compatibility"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "existing_unit_suite"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "release_identity"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "release_lifecycle"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "properties": {
+              "name": {
+                "const": "documentation_walkthrough"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "counts": {
+      "$ref": "#/$defs/counts"
+    },
+    "cold_start_evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/cold"
+      },
+      "description": "Qualified cold-start evidence is validated against successful completed-interaction request correlations; array length alone cannot establish fresh-start coverage. Keep missing correlation not_run/incomplete and derive the count from distinct qualified environment identities."
+    },
+    "live_market_probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "fail",
+            "not_run"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "reason",
+        "evidence"
+      ]
+    },
+    "full_deployment_success": {
+      "type": "boolean"
+    },
+    "authorization_evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/authorizationEvidence"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "mode",
+    "run_id",
+    "started_at",
+    "completed_at",
+    "release",
+    "target",
+    "additional_targets",
+    "stages",
+    "counts",
+    "cold_start_evidence",
+    "live_market_probe",
+    "full_deployment_success",
+    "authorization_evidence"
+  ],
+  "$defs": {
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_commit": {
+          "type": "string",
+          "pattern": "^([a-f0-9]{40}|[a-f0-9]{64})$"
+        },
+        "source_dirty": {
+          "type": "boolean"
+        },
+        "dependency_lock_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "image_config_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_image_uri": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resolved_image_uri": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "architecture": {
+          "const": "arm64"
+        }
+      },
+      "required": [
+        "source_commit",
+        "source_dirty",
+        "dependency_lock_sha256",
+        "image_config_digest",
+        "expected_image_uri",
+        "resolved_image_uri",
+        "architecture"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "local",
+            "aws_lambda"
+          ]
+        },
+        "account_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "region": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stack_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "function_arn": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "function_version": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "alias": {
+          "anyOf": [
+            {
+              "const": "live"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "endpoint": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Public API Gateway MCP endpoint, never a Function URL. For live evidence validate the API/stage/path against gateway metadata and the observed integration targeting this deployment alias."
+        },
+        "gateway": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/gateway"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "account_id",
+        "region",
+        "stack_id",
+        "function_arn",
+        "function_version",
+        "alias",
+        "endpoint",
+        "gateway"
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "description",
+        "ref",
+        "sha256"
+      ]
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "enum": [
+            "artifact_startup",
+            "health",
+            "client_initialization",
+            "tool_discovery",
+            "tool_execution",
+            "authorization",
+            "invalid_tool_input",
+            "upstream_failure",
+            "cold_start",
+            "concurrent_clients",
+            "docker_compatibility",
+            "local_transport_compatibility",
+            "existing_unit_suite",
+            "release_identity",
+            "release_lifecycle",
+            "documentation_walkthrough"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "fail",
+            "not_run"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duration_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "status",
+        "reason",
+        "duration_ms",
+        "evidence"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "pass"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attempted_interactions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed_interactions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "concurrent_clients": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed_health_checks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidenced_fresh_starts": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "attempted_interactions",
+        "passed_interactions",
+        "concurrent_clients",
+        "passed_health_checks",
+        "evidenced_fresh_starts"
+      ]
+    },
+    "cold": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "function_arn": {
+          "type": "string",
+          "minLength": 1
+        },
+        "function_version": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "resolved_image_uri": {
+          "type": "string",
+          "pattern": "^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$"
+        },
+        "log_stream": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform_request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "init_duration_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "function_arn",
+        "function_version",
+        "resolved_image_uri",
+        "log_stream",
+        "platform_request_id",
+        "observed_at",
+        "init_duration_ms"
+      ],
+      "description": "A startup record counts toward SC-003 only when its platform_request_id is correlated through gateway/integration evidence to an MCP request in a successfully completed interaction from the same run/release/target. Initialization or discovery may be the startup request. Semantic validation must join the completed-interactions.json stage evidence; health-only, unrelated, failed/incomplete, or unmatched starts do not count."
+    },
+    "lifecycleEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "starting_image_uri": {
+          "type": "string",
+          "pattern": "^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$"
+        },
+        "updated_image_uri": {
+          "type": "string",
+          "pattern": "^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$"
+        },
+        "rollback_image_uri": {
+          "type": "string",
+          "pattern": "^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$"
+        },
+        "target_stack_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "steps": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "clean_checkout_deploy": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "not_run"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/evidence"
+                  }
+                }
+              },
+              "required": [
+                "status",
+                "reason",
+                "evidence"
+              ]
+            },
+            "update": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "not_run"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/evidence"
+                  }
+                }
+              },
+              "required": [
+                "status",
+                "reason",
+                "evidence"
+              ]
+            },
+            "rollback": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "not_run"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/evidence"
+                  }
+                }
+              },
+              "required": [
+                "status",
+                "reason",
+                "evidence"
+              ]
+            },
+            "cleanup": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "not_run"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/evidence"
+                  }
+                }
+              },
+              "required": [
+                "status",
+                "reason",
+                "evidence"
+              ]
+            },
+            "documentation_review": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "not_run"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/evidence"
+                  }
+                }
+              },
+              "required": [
+                "status",
+                "reason",
+                "evidence"
+              ]
+            }
+          },
+          "required": [
+            "clean_checkout_deploy",
+            "update",
+            "rollback",
+            "cleanup",
+            "documentation_review"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "reviewer",
+        "completed_at",
+        "starting_image_uri",
+        "updated_image_uri",
+        "rollback_image_uri",
+        "target_stack_ids",
+        "steps"
+      ]
+    },
+    "gateway": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Read-only provenance for the supplied HTTP API and custom authorizer and the feature-owned integration/routes. Resolve identifiers from AWS rather than trusting stack outputs alone; all three routes must reference this authorizer and integration.",
+      "properties": {
+        "api_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+$"
+        },
+        "stage_name": {
+          "const": "$default",
+          "description": "Initial supported profile: existing auto-deploy default stage only; named stages and custom-domain mappings are outside scope."
+        },
+        "authorizer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "integration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_ids": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "IDs resolving to ANY /mcp, ANY /mcp/, and GET /health. Semantic validation must verify exact route keys, CUSTOM authorization, authorizer ID, and integration target."
+        },
+        "payload_format_version": {
+          "const": "2.0"
+        }
+      },
+      "required": [
+        "api_id",
+        "stage_name",
+        "authorizer_id",
+        "integration_id",
+        "route_ids",
+        "payload_format_version"
+      ]
+    },
+    "authorizationEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Sanitized live gateway denial and deployment-policy observations, bound to the primary target and verification window. HTTP rejection alone does not prove that the service was not invoked; correlate gateway access/integration records and Lambda evidence. Never include tokens, raw Authorization headers, or raw authorizer responses.",
+      "properties": {
+        "denied_requests": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "credential_case": {
+                "enum": [
+                  "missing",
+                  "invalid",
+                  "expired"
+                ]
+              },
+              "gateway_request_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status_code": {
+                "enum": [
+                  401,
+                  403
+                ]
+              },
+              "service_invoked": {
+                "const": false
+              },
+              "evidence": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/evidence"
+                }
+              }
+            },
+            "required": [
+              "credential_case",
+              "gateway_request_id",
+              "status_code",
+              "service_invoked",
+              "evidence"
+            ]
+          },
+          "allOf": [
+            {
+              "contains": {
+                "properties": {
+                  "credential_case": {
+                    "const": "missing"
+                  }
+                },
+                "required": [
+                  "credential_case"
+                ]
+              }
+            },
+            {
+              "contains": {
+                "properties": {
+                  "credential_case": {
+                    "const": "invalid"
+                  }
+                },
+                "required": [
+                  "credential_case"
+                ]
+              }
+            }
+          ]
+        },
+        "public_bypass_absent": {
+          "const": true
+        },
+        "configuration_evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evidence"
+          },
+          "description": "Evidence of protected route/authorizer/integration bindings and alias-scoped API Gateway invocation permissions, no Function URL, and no other public invocation path. Additional targets need their own scoped evidence; configuration snapshots must exclude credentials."
+        }
+      },
+      "required": [
+        "denied_requests",
+        "public_bypass_absent",
+        "configuration_evidence"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "full_deployment_success": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "mode": {
+            "const": "combine"
+          },
+          "release": {
+            "properties": {
+              "image_config_digest": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "expected_image_uri": {
+                "type": "string",
+                "pattern": "^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$"
+              },
+              "resolved_image_uri": {
+                "type": "string",
+                "pattern": "^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$"
+              }
+            }
+          },
+          "target": {
+            "properties": {
+              "kind": {
+                "const": "aws_lambda"
+              },
+              "account_id": {
+                "type": "string"
+              },
+              "region": {
+                "type": "string"
+              },
+              "stack_id": {
+                "type": "string"
+              },
+              "function_arn": {
+                "type": "string"
+              },
+              "function_version": {
+                "type": "string"
+              },
+              "alias": {
+                "const": "live"
+              },
+              "endpoint": {
+                "type": "string",
+                "pattern": "^https://"
+              },
+              "gateway": {
+                "$ref": "#/$defs/gateway"
+              }
+            }
+          },
+          "stages": {
+            "items": {
+              "properties": {
+                "status": {
+                  "const": "pass"
+                }
+              }
+            }
+          },
+          "counts": {
+            "properties": {
+              "attempted_interactions": {
+                "minimum": 20
+              },
+              "passed_interactions": {
+                "minimum": 20
+              },
+              "concurrent_clients": {
+                "minimum": 5
+              },
+              "passed_health_checks": {
+                "minimum": 10
+              },
+              "evidenced_fresh_starts": {
+                "minimum": 2
+              }
+            }
+          },
+          "cold_start_evidence": {
+            "minItems": 2
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "local"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "authorization_evidence": {
+            "type": "null"
+          },
+          "stages": {
+            "items": {
+              "if": {
+                "properties": {
+                  "name": {
+                    "const": "authorization"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "status": {
+                    "const": "not_run"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stages": {
+            "contains": {
+              "properties": {
+                "name": {
+                  "const": "authorization"
+                },
+                "status": {
+                  "const": "pass"
+                }
+              },
+              "required": [
+                "name",
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "stages"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mode": {
+            "enum": [
+              "live",
+              "combine"
+            ]
+          },
+          "authorization_evidence": {
+            "$ref": "#/$defs/authorizationEvidence"
+          },
+          "target": {
+            "properties": {
+              "kind": {
+                "const": "aws_lambda"
+              },
+              "gateway": {
+                "$ref": "#/$defs/gateway"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,635 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Additive TradingView MCP Lambda runtime; requires supplied HTTP API and REQUEST authorizer. Stack name must match [A-Za-z][A-Za-z0-9-]{0,47}; run preflight before deployment.",
+  "Parameters": {
+    "ImageUri": {
+      "Type": "String",
+      "AllowedPattern": "[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._/-]+@sha256:[a-f0-9]{64}"
+    },
+    "DeploymentRevision": {
+      "Type": "String",
+      "AllowedPattern": "[A-Za-z0-9._-]{1,64}"
+    },
+    "SourceCommit": {
+      "Type": "String",
+      "AllowedPattern": "([a-f0-9]{40}|[a-f0-9]{64})"
+    },
+    "LockSha256": {
+      "Type": "String",
+      "AllowedPattern": "[a-f0-9]{64}"
+    },
+    "ApiId": {
+      "Type": "String",
+      "AllowedPattern": "[a-z0-9]+"
+    },
+    "AuthorizerId": {
+      "Type": "String",
+      "AllowedPattern": "[a-z0-9]+"
+    },
+    "RollbackVersion": {
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "(|[1-9][0-9]*)"
+    },
+    "ProxyEnabled": {
+      "Type": "String",
+      "Default": "true",
+      "AllowedValues": [
+        "true",
+        "false"
+      ]
+    },
+    "ProxyHost": {
+      "Type": "String",
+      "Default": "p.webshare.io",
+      "AllowedPattern": "[A-Za-z0-9][A-Za-z0-9.-]{0,252}"
+    },
+    "MemorySize": {
+      "Type": "Number",
+      "Default": 1024,
+      "MinValue": 128,
+      "MaxValue": 10240
+    },
+    "TimeoutSeconds": {
+      "Type": "Number",
+      "Default": 25,
+      "MinValue": 1,
+      "MaxValue": 25
+    },
+    "EphemeralStorageMb": {
+      "Type": "Number",
+      "Default": 512,
+      "MinValue": 512,
+      "MaxValue": 10240
+    },
+    "ReservedConcurrency": {
+      "Type": "Number",
+      "Default": 5,
+      "MinValue": 1,
+      "MaxValue": 1000
+    },
+    "MarketauxDailyBudget": {
+      "Type": "Number",
+      "Default": 90,
+      "MinValue": 0
+    },
+    "ProxyPort": {
+      "Type": "Number",
+      "Default": 80,
+      "MinValue": 1,
+      "MaxValue": 65535
+    },
+    "ProxySessionMin": {
+      "Type": "Number",
+      "Default": 1,
+      "MinValue": 1
+    },
+    "ProxySessionMax": {
+      "Type": "Number",
+      "Default": 250,
+      "MinValue": 1
+    },
+    "LogRetentionDays": {
+      "Type": "Number",
+      "Default": 14,
+      "AllowedValues": [
+        1,
+        3,
+        5,
+        7,
+        14,
+        30,
+        60,
+        90,
+        120,
+        150,
+        180,
+        365,
+        400,
+        545,
+        731,
+        1096,
+        1827,
+        2192,
+        2557,
+        2922,
+        3288,
+        3653
+      ]
+    },
+    "MarketauxApiToken": {
+      "Type": "String",
+      "Default": "",
+      "NoEcho": true
+    },
+    "ProxyUsernamePrefix": {
+      "Type": "String",
+      "Default": "",
+      "NoEcho": true
+    },
+    "ProxyPassword": {
+      "Type": "String",
+      "Default": "",
+      "NoEcho": true
+    }
+  },
+  "Conditions": {
+    "UseRollback": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "RollbackVersion"
+            },
+            ""
+          ]
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/aws/lambda/${AWS::StackName}"
+        },
+        "RetentionInDays": {
+          "Ref": "LogRetentionDays"
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "tradingview-mcp"
+          },
+          {
+            "Key": "Feature",
+            "Value": "001-add-lambda-deployment"
+          },
+          {
+            "Key": "Stack",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      }
+    },
+    "ExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "tradingview-mcp"
+          },
+          {
+            "Key": "Feature",
+            "Value": "001-add-lambda-deployment"
+          },
+          {
+            "Key": "Stack",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ],
+        "Policies": [
+          {
+            "PolicyName": "ScopedLogWrites",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}:log-stream:*"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "Function": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": [
+        "LogGroup"
+      ],
+      "Properties": {
+        "FunctionName": {
+          "Ref": "AWS::StackName"
+        },
+        "Description": {
+          "Fn::Sub": "TradingView MCP revision ${DeploymentRevision}"
+        },
+        "PackageType": "Image",
+        "Architectures": [
+          "arm64"
+        ],
+        "Code": {
+          "ImageUri": {
+            "Ref": "ImageUri"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "ExecutionRole",
+            "Arn"
+          ]
+        },
+        "MemorySize": {
+          "Ref": "MemorySize"
+        },
+        "Timeout": {
+          "Ref": "TimeoutSeconds"
+        },
+        "EphemeralStorage": {
+          "Size": {
+            "Ref": "EphemeralStorageMb"
+          }
+        },
+        "ReservedConcurrentExecutions": {
+          "Ref": "ReservedConcurrency"
+        },
+        "Environment": {
+          "Variables": {
+            "MARKETAUX_API_TOKEN": {
+              "Ref": "MarketauxApiToken"
+            },
+            "MARKETAUX_DAILY_BUDGET": {
+              "Ref": "MarketauxDailyBudget"
+            },
+            "PROXY_HOST": {
+              "Ref": "ProxyHost"
+            },
+            "PROXY_PORT": {
+              "Ref": "ProxyPort"
+            },
+            "PROXY_USERNAME_PREFIX": {
+              "Ref": "ProxyUsernamePrefix"
+            },
+            "PROXY_PASSWORD": {
+              "Ref": "ProxyPassword"
+            },
+            "PROXY_SESSION_MIN": {
+              "Ref": "ProxySessionMin"
+            },
+            "PROXY_SESSION_MAX": {
+              "Ref": "ProxySessionMax"
+            },
+            "PROXY_ENABLED": {
+              "Ref": "ProxyEnabled"
+            },
+            "TRADINGVIEW_MCP_PUBLIC_HOST": {
+              "Fn::Sub": "${ApiId}.execute-api.${AWS::Region}.amazonaws.com"
+            },
+            "TRADINGVIEW_MCP_DEPLOYMENT_REVISION": {
+              "Ref": "DeploymentRevision"
+            },
+            "TRADINGVIEW_MCP_SOURCE_COMMIT": {
+              "Ref": "SourceCommit"
+            },
+            "TRADINGVIEW_MCP_LOCK_SHA256": {
+              "Ref": "LockSha256"
+            },
+            "AWS_LWA_PORT": "8000",
+            "AWS_LWA_READINESS_CHECK_PATH": "/health",
+            "AWS_LWA_READINESS_CHECK_HEALTHY_STATUS": "200",
+            "AWS_LWA_INVOKE_MODE": "buffered",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONUNBUFFERED": "1",
+            "HOME": "/tmp",
+            "TMPDIR": "/tmp",
+            "UV_CACHE_DIR": "/tmp/uv"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "tradingview-mcp"
+          },
+          {
+            "Key": "Feature",
+            "Value": "001-add-lambda-deployment"
+          },
+          {
+            "Key": "Stack",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      }
+    },
+    "PublishedVersion": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "Function"
+        },
+        "Description": {
+          "Fn::Sub": "Revision ${DeploymentRevision}"
+        }
+      }
+    },
+    "LiveAlias": {
+      "Type": "AWS::Lambda::Alias",
+      "Properties": {
+        "Name": "live",
+        "FunctionName": {
+          "Ref": "Function"
+        },
+        "FunctionVersion": {
+          "Fn::If": [
+            "UseRollback",
+            {
+              "Ref": "RollbackVersion"
+            },
+            {
+              "Fn::GetAtt": [
+                "PublishedVersion",
+                "Version"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "Integration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "ApiId"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationMethod": "POST",
+        "IntegrationUri": {
+          "Ref": "LiveAlias"
+        },
+        "PayloadFormatVersion": "2.0",
+        "TimeoutInMillis": 30000
+      }
+    },
+    "McpPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "LiveAlias"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceAccount": {
+          "Ref": "AWS::AccountId"
+        },
+        "SourceArn": {
+          "Fn::Sub": "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/$default/*/mcp"
+        }
+      }
+    },
+    "McpRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "DependsOn": [
+        "McpPermission"
+      ],
+      "Properties": {
+        "ApiId": {
+          "Ref": "ApiId"
+        },
+        "RouteKey": "ANY /mcp",
+        "AuthorizationType": "CUSTOM",
+        "AuthorizerId": {
+          "Ref": "AuthorizerId"
+        },
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Integration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "McpSlashPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "LiveAlias"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceAccount": {
+          "Ref": "AWS::AccountId"
+        },
+        "SourceArn": {
+          "Fn::Sub": "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/$default/*/mcp/"
+        }
+      }
+    },
+    "McpSlashRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "DependsOn": [
+        "McpSlashPermission"
+      ],
+      "Properties": {
+        "ApiId": {
+          "Ref": "ApiId"
+        },
+        "RouteKey": "ANY /mcp/",
+        "AuthorizationType": "CUSTOM",
+        "AuthorizerId": {
+          "Ref": "AuthorizerId"
+        },
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Integration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "HealthPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "LiveAlias"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceAccount": {
+          "Ref": "AWS::AccountId"
+        },
+        "SourceArn": {
+          "Fn::Sub": "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/$default/GET/health"
+        }
+      }
+    },
+    "HealthRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "DependsOn": [
+        "HealthPermission"
+      ],
+      "Properties": {
+        "ApiId": {
+          "Ref": "ApiId"
+        },
+        "RouteKey": "GET /health",
+        "AuthorizationType": "CUSTOM",
+        "AuthorizerId": {
+          "Ref": "AuthorizerId"
+        },
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Integration"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ApiId": {
+      "Value": {
+        "Ref": "ApiId"
+      }
+    },
+    "AuthorizerId": {
+      "Value": {
+        "Ref": "AuthorizerId"
+      }
+    },
+    "ImageUri": {
+      "Value": {
+        "Ref": "ImageUri"
+      }
+    },
+    "SourceCommit": {
+      "Value": {
+        "Ref": "SourceCommit"
+      }
+    },
+    "LockSha256": {
+      "Value": {
+        "Ref": "LockSha256"
+      }
+    },
+    "DeploymentRevision": {
+      "Value": {
+        "Ref": "DeploymentRevision"
+      }
+    },
+    "ApiEndpoint": {
+      "Value": {
+        "Fn::Sub": "https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com"
+      }
+    },
+    "ApiStageName": {
+      "Value": "$default"
+    },
+    "IntegrationId": {
+      "Value": {
+        "Ref": "Integration"
+      }
+    },
+    "McpRouteId": {
+      "Value": {
+        "Ref": "McpRoute"
+      }
+    },
+    "McpSlashRouteId": {
+      "Value": {
+        "Ref": "McpSlashRoute"
+      }
+    },
+    "HealthRouteId": {
+      "Value": {
+        "Ref": "HealthRoute"
+      }
+    },
+    "McpEndpoint": {
+      "Value": {
+        "Fn::Sub": "https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/mcp"
+      }
+    },
+    "HealthUrl": {
+      "Value": {
+        "Fn::Sub": "https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/health"
+      }
+    },
+    "FunctionArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Function",
+          "Arn"
+        ]
+      }
+    },
+    "AliasArn": {
+      "Value": {
+        "Ref": "LiveAlias"
+      }
+    },
+    "PublishedVersion": {
+      "Value": {
+        "Fn::GetAtt": [
+          "PublishedVersion",
+          "Version"
+        ]
+      }
+    },
+    "ActiveVersion": {
+      "Value": {
+        "Fn::If": [
+          "UseRollback",
+          {
+            "Ref": "RollbackVersion"
+          },
+          {
+            "Fn::GetAtt": [
+              "PublishedVersion",
+              "Version"
+            ]
+          }
+        ]
+      }
+    },
+    "LogGroupName": {
+      "Value": {
+        "Ref": "LogGroup"
+      }
+    }
+  }
+}

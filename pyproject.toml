@@ -63,6 +63,13 @@ dev-dependencies = [
 ]
 package = true
 
+[dependency-groups]
+deployment = [
+    "boto3>=1.40,<2",
+    "jsonschema>=4.25,<5",
+    "cfn-lint>=1.40,<2",
+]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 # Default runs stay hermetic — the real-network stress suite only runs when

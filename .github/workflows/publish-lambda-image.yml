@@ -1,0 +1,106 @@
+name: Publish Lambda image to ECR
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Unique immutable tag (empty generates one per run)'
+        required: false
+        default: ''
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04-arm
+    environment: lambda-publication
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
+      REQUESTED_TAG: ${{ inputs.release_tag }}
+      EVIDENCE_DIR: /tmp/tradingview-lambda-evidence
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: '0.13.1'
+          python-version: '3.11'
+          enable-cache: true
+      - run: uv sync --dev --group deployment --locked
+      - name: Validate nonsecret publication inputs
+        run: |
+          uv run --locked python - <<'PY'
+          import os,re
+          assert re.fullmatch(r'[a-z]{2}(?:-[a-z0-9]+)+-\d',os.environ['AWS_REGION'])
+          assert re.fullmatch(r'[a-z][a-z0-9._/-]{1,254}',os.environ['ECR_REPOSITORY'])
+          assert re.fullmatch(r'arn:aws:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+',os.environ['AWS_ROLE_TO_ASSUME'])
+          tag=os.environ['REQUESTED_TAG'] or 'run-'+os.environ['GITHUB_RUN_ID']+'-'+os.environ['GITHUB_RUN_ATTEMPT']
+          assert re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}',tag)
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('RELEASE_TAG='+tag+'\n')
+          PY
+      - uses: docker/setup-buildx-action@v3
+      - name: Build one native Lambda image and pinned baseline
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          LOCK_SHA256=$(sha256sum uv.lock | cut -d' ' -f1)
+          docker buildx build --platform linux/arm64 --provenance=false --sbom=false --load -f Dockerfile.lambda --build-arg SOURCE_COMMIT="$GITHUB_SHA" --build-arg SOURCE_DIRTY=false --build-arg LOCK_SHA256="$LOCK_SHA256" -t lambda-tested:local .
+          BASELINE_REF=$(uv run --locked python -c "import json; print(json.load(open('tests/integration/support/baseline.json'))['baseline_ref'])")
+          BASELINE_CONTEXT=$(mktemp -d)
+          trap 'rm -rf "$BASELINE_CONTEXT"' EXIT
+          git archive "$BASELINE_REF" | tar -x -C "$BASELINE_CONTEXT"
+          docker build --platform linux/arm64 --label "org.opencontainers.image.revision=$BASELINE_REF" -t lambda-baseline:local "$BASELINE_CONTEXT"
+      - name: Require all local acceptance gates before pushing
+        run: |
+          set +e
+          uv run --locked --group deployment python scripts/verify_lambda.py local --baseline-image lambda-baseline:local --lambda-image lambda-tested:local --report "$EVIDENCE_DIR/local.json"
+          RESULT=$?
+          set -e
+          test "$RESULT" -eq 2
+          uv run --locked python - <<'PY'
+          import json,os
+          r=json.load(open(os.environ['EVIDENCE_DIR']+'/local.json'))
+          required={'artifact_startup','health','client_initialization','tool_discovery','tool_execution','invalid_tool_input','upstream_failure','docker_compatibility','local_transport_compatibility','existing_unit_suite'}
+          assert all(s['status']=='pass' for s in r['stages'] if s['name'] in required)
+          assert r['release']['image_config_digest']
+          PY
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+      - name: Push the same tested image and validate manifest identity
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          set -euo pipefail
+          IMAGE="$REGISTRY/$ECR_REPOSITORY:$RELEASE_TAG"
+          docker tag lambda-tested:local "$IMAGE"
+          docker push "$IMAGE"
+          aws ecr batch-get-image --region "$AWS_REGION" --repository-name "$ECR_REPOSITORY" --image-ids "imageTag=$RELEASE_TAG" > /tmp/lambda-published-manifest.json
+          docker image inspect lambda-tested:local > /tmp/lambda-local-inspect.json
+          uv run --locked python - <<'PY'
+          import json,os,importlib.util
+          s=importlib.util.spec_from_file_location('v','scripts/verify_lambda.py');v=importlib.util.module_from_spec(s);s.loader.exec_module(v)
+          image=json.load(open('/tmp/lambda-local-inspect.json'))[0]
+          published=json.load(open('/tmp/lambda-published-manifest.json'))['images'][0]
+          manifest=json.loads(published['imageManifest'])
+          v.verify_publication(manifest,image['Id'],{'architecture':image['Architecture'],'os':image['Os']})
+          uri=os.environ['REGISTRY']+'/'+os.environ['ECR_REPOSITORY']+'@'+published['imageId']['imageDigest']
+          r=json.load(open(os.environ['EVIDENCE_DIR']+'/local.json'))
+          assert r['release']['image_config_digest']==image['Id']
+          r['release']['expected_image_uri']=uri
+          v.validate(r);v.write_json(os.environ['EVIDENCE_DIR']+'/local.json',r)
+          v.write_json(os.environ['EVIDENCE_DIR']+'/publication.json',{'image_uri':uri,'image_config_digest':image['Id'],'source_commit':r['release']['source_commit'],'dependency_lock_sha256':r['release']['dependency_lock_sha256']})
+          print(uri)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lambda-sanitized-evidence
+          path: /tmp/tradingview-lambda-evidence/
+          if-no-files-found: error

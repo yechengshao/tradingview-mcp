@@ -1,0 +1,11 @@
+# Allow only reproducible packaging inputs for the Lambda image.
+**
+!pyproject.toml
+!uv.lock
+!README.md
+!src/
+!src/**
+!Dockerfile.lambda
+src/**/__pycache__/
+src/**/*.py[cod]
+src/**/.env*
