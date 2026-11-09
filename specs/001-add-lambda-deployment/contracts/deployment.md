@@ -34,7 +34,7 @@ Parameters: ImageUri, DeploymentRevision, SourceCommit, LockSha256, ApiId, Autho
 Resources:
 
 1. Explicit `/aws/lambda/<runtime-stack-name>` log group.
-2. Lambda execution role with only CreateLogStream/PutLogEvents on the declared log-group streams; no provider configuration-store read/decryption or other application AWS API access.
+2. Lambda execution role with CreateLogStream/PutLogEvents scoped to its log-group streams and conditional X-Ray PutTraceSegments/PutTelemetryRecords export under the [observability contract](observability.md); no provider configuration-store read/decryption or identity/billing application API access.
 3. Image function named for the validated stack (at most 48 characters), arm64, exact ECR digest, no VPC attachment, defined environment/sizing.
 4. Published version tied to DeploymentRevision; retain replaced versions.
 5. Stable `live` alias selecting the candidate or a validated retained RollbackVersion of this function.

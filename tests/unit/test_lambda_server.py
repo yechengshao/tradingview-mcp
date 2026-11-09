@@ -82,3 +82,10 @@ def test_rejected_authority_and_origin(headers):
 def test_forwarded_host_does_not_override_actual_authority():
     with TestClient(module().LambdaBoundary(dummy,PUBLIC),base_url='http://evil.example') as client:
         assert client.get('/health',headers={'x-forwarded-host':PUBLIC}).status_code==421
+
+
+@pytest.mark.parametrize('key,value', [('TRADINGVIEW_MCP_ENVIRONMENT','secret-value')])
+def test_observability_configuration_is_validated_without_echo(key,value):
+    with pytest.raises(ValueError) as caught:
+        module().validate_environment({'TRADINGVIEW_MCP_PUBLIC_HOST':PUBLIC,key:value})
+    assert value not in str(caught.value)

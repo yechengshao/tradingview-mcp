@@ -39,7 +39,9 @@ Many deployments can reference one artifact. Build once, test locally, then push
 | TimeoutSeconds | 25; integer 1–25, within the 30-second gateway integration window |
 | EphemeralStorageMb | 512; supported Lambda range 512–10240 |
 | ReservedConcurrency | 5; positive integer; verify quota capacity before deployment |
-| LogRetentionDays | 14; supported CloudWatch retention value |
+| LogRetentionDays | 14; supported CloudWatch retention value; development can explicitly choose 3 |
+| TracingMode | PassThrough by default; Active enables Lambda tracing and conditional export IAM |
+| ObservabilityEnvironment | development (default), test or production; diagnostic label only |
 | RollbackVersion | Empty for new publication; otherwise retained numeric version of this function |
 | MarketauxApiToken / ProxyUsernamePrefix / ProxyPassword | Optional strings, default empty; NoEcho true on all three deployment parameters; mapped directly to native Lambda environment variables |
 | MarketauxDailyBudget | 90; nonnegative integer, serialized as a string |
@@ -49,7 +51,7 @@ Many deployments can reference one artifact. Build once, test locally, then push
 
 The supplied stage is fixed to `$default` with AutoDeploy true in the initial profile; neither stage nor API is provisioned. Integration timeout is 30000 ms. External clients use a 10-second connection limit and 35-second response deadline; cold initialization shares the gateway window. Named stages, REST APIs, and custom-domain mappings are not supported by this initial integration profile.
 
-Runtime environment contains release/revision identity, TRADINGVIEW_MCP_PUBLIC_HOST (exact execute-api authority derived from ApiId/region), AWS_LWA_PORT=8000, AWS_LWA_READINESS_CHECK_PATH=/health, AWS_LWA_READINESS_CHECK_HEALTHY_STATUS=200, AWS_LWA_INVOKE_MODE=buffered, the nine application settings below, and Python writable-path settings. AWS supplies AWS_REGION; do not set reserved Lambda variables. Lambda supplies these configured values before process startup. There is no startup retrieval hook, provider SDK dependency, or provider-storage read permission. Provider credentials are separate from MCP client authentication; client bearer credentials are not injected into the service.
+Runtime environment contains release/revision identity, TRADINGVIEW_MCP_PUBLIC_HOST (exact execute-api authority derived from ApiId/region), AWS_LWA_PORT=8000, AWS_LWA_READINESS_CHECK_PATH=/health, AWS_LWA_READINESS_CHECK_HEALTHY_STATUS=200, AWS_LWA_INVOKE_MODE=buffered, the nine application settings below, nonsecret TRADINGVIEW_MCP_ENVIRONMENT diagnostic label, and Python writable-path settings. AWS supplies AWS_REGION; do not set reserved Lambda variables. Lambda supplies these configured values before process startup. There is no startup retrieval hook, provider SDK dependency, or provider-storage read permission. Provider credentials are separate from MCP client authentication; client bearer credentials are not injected into the service.
 
 State: repository_bootstrapped → image_published → function_created_or_updated → version_published → alias_active → gateway_attached → verified. Failure requires explicit operator rollback. Cleanup removes feature attachments/runtime before optional ECR removal.
 

@@ -179,3 +179,11 @@ Verify its attachments are removed while the supplied API/authorizer/Cognito and
 unrelated routes remain. ECR/rollback images are retained; purging them is separate.
 For 401/403 check credentials; for 500 check the authorizer; for 502/504 check
 integration/alias permissions, timeouts, and buffered payload size.
+
+## AWS-native MCP logging and tracing
+
+Application monitoring adds no dependency. CloudWatch receives stdlib JSON startup/request/tool failure logs with durations, safe stack locations, opaque correlation IDs and available AWS trace identifiers; no arguments/results, authorization/cookies or raw exception/provider values. Successful polling emits no routine application logs. Search by service=tradingview-mcp and the response's x-correlation-id within a bounded incident window. Legacy raw prints and SDK/Uvicorn logging are suppressed only in Lambda.
+
+Set TracingMode=Active to enable AWS-native Lambda X-Ray (default PassThrough), ObservabilityEnvironment=development|test|production and finite LogRetentionDays (legacy default 14; choose 3 in development). The template grants conditional native trace-write permissions and scoped log writes. No collector, tracing SDK, app sampler, exporter, custom segment or extra monitoring service is used.
+
+Native X-Ray provides supported service/invocation-level tracing, not custom tool/provider spans. Use sanitized CloudWatch failure timings for application detail and native Lambda error/duration/throttling metrics. AWS controls Lambda sampling; spec 002 owns the future REST-stage 1% rule. The legacy HTTP API has no REST-stage X-Ray integration. Real ingestion, native graph/header linkage, sampling and ARM64 execution remain T058 acceptance; no monitoring deployment is implied. See the [contract](../specs/001-add-lambda-deployment/contracts/observability.md).

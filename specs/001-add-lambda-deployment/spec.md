@@ -1,14 +1,16 @@
 # Spec 001: MCP Service on Lambda
 
-**Created**: 2026-10-18 · **Updated**: 2026-11-03 · **Branch**: `main`
-**Status**: Legacy HTTP runtime delivered locally; publishing IAM, REST support and live acceptance pending.
+**Created**: 2026-10-18 · **Updated**: 2026-11-08 · **Branch**: `main`
+**Status**: Legacy HTTP runtime and MCP observability delivered locally; publishing IAM, REST support and live acceptance pending.
+
+**Length exception**: retained requirement/acceptance IDs and legacy/REST security boundaries require the full inventory alongside the new telemetry requirements.
 
 ## Scope and confirmed decisions
 
 Run the existing 39 TradingView MCP tools on Lambda while preserving Docker, local transport and GHCR releases.
 
 - Service handles finite, stateless JSON request/response interactions and internal health checks.
-- [Spec 002](../../../mcp-auth-subscriptions/specs/002-authentication-api-access/spec.md) owns Cognito, Step Functions onboarding, REST API, authorization and usage plans. [Spec 003](../../../mcp-auth-subscriptions/specs/003-billing-subscriptions/spec.md) owns billing Lambda/DynamoDB/Stripe.
+- [Spec 002](../../../mcp-auth-subscriptions/specs/002-authentication-api-access/spec.md) owns Cognito, request-driven onboarding, REST API, authorization and usage plans. [Spec 003](../../../mcp-auth-subscriptions/specs/003-billing-subscriptions/spec.md) owns billing Lambda/DynamoDB/Stripe.
 - MCP implements no authentication/billing and receives no related credentials, storage access or permissions.
 - All nine provider settings use native Lambda environment variables; no startup retrieval hook.
 - REST is the new target. Existing HTTP API implementation/report v1 remains a separate legacy profile; see [REST handoff](contracts/rest-migration.md).
@@ -54,6 +56,9 @@ Health confirms server availability without market-provider calls. Verification 
 - **FR-016**: Reproduce service ECR publication using repository-scoped temporary GitHub OIDC credentials with no deployment/billing-data rights.
 - **FR-017**: Keep identity validation, billing processing/state and related SDK/configuration/IAM outside MCP; internal readiness remains independent of those systems.
 
+- **FR-018**: Provide bounded credential-safe CloudWatch JSON diagnostics and AWS-native Lambda/API Gateway X-Ray configuration, preserving correlation and available AWS tracking IDs; use log timings for tool/application detail without introducing a telemetry SDK, custom span/exporter or collector.
+
+
 ## Success criteria
 
 - **SC-001**: A clean-checkout reviewer completes documented deployment, connection, verification, update, rollback and cleanup with supplied access prerequisites and no source edits/unpublished steps.
@@ -65,8 +70,13 @@ Health confirms server availability without market-provider calls. Verification 
 - **SC-007**: Every mandatory stage has a result; full deployment success requires all required live stages to pass.
 - **SC-008**: Local build/start/verification needs no Cognito/Stripe/DynamoDB configuration; runtime IAM/environment exclude identity/billing access and cleanup preserves sibling resources.
 
+- **SC-009**: Local redaction/context-isolation/native-metadata tests and retention/tracing-IAM checks pass without a telemetry dependency; original transports stay compatible and actual CloudWatch/X-Ray delivery remains not_run until verified.
+
+
 ## Assumptions and references
 
-Operators supply account/region, permissions, optional provider values and eligible external credentials for live checks. Local-only validation is the current instruction; absent live checks remain not_run. Acceptance counts are minimum checks, not an SLA. The constitution is an unfilled template.
+Operators supply account/region, permissions, optional provider values and eligible external credentials for live checks. Local-only validation is the current instruction; absent live checks remain not_run. Acceptance counts are minimum checks, not an SLA. The repository constitution governs documentation changes.
 
 [Plan](plan.md) · [Tasks](tasks.md) · [Configuration/evidence model](data-model.md) · [Deployment contract](contracts/deployment.md) · [Operator guide](../../docs/lambda-deployment.md)
+
+Observability implementation and operator checks follow the [MCP observability contract](contracts/observability.md).

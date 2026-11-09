@@ -1,62 +1,42 @@
 # Plan 001: MCP Service on Lambda
 
-**Updated**: 2026-11-03 · **Branch**: `main` · [Spec](spec.md) · [Tasks](tasks.md)
+**Updated**: 2026-11-08 · **Branch**: `main` · [Spec](spec.md) · [Tasks](tasks.md)
 
-## Scope and status
+## Scope and profiles
 
-Provide the existing 39 tools through an isolated ARM64 Lambda entrypoint/image. Preserve original Docker/local/GHCR behavior and locked application dependencies. MCP implements no identity, billing, configuration-store retrieval or workflow logic; its role writes only its own logs.
+Serve the existing 39 tools through an isolated ARM64 Lambda image while preserving original Docker/local/GHCR behavior and locked application dependencies. MCP implements no identity, billing, state-store retrieval or onboarding logic. Its role writes its own logs and conditionally exports traces.
 
 | Profile | Status and ownership |
 |---|---|
-| Legacy HTTP API v2 | Delivered `runtime.yaml`; service owns payload-2.0 integration, `ANY /mcp`, `ANY /mcp/`, `GET /health` and alias permissions on supplied `$default` API/authorizer |
-| REST API | Planned `runtime-rest.yaml` supplies function/version/live alias/logs/native environment only; spec 002 owns every REST attachment/permission, named stage and native usage plan |
+| Legacy HTTP API v2 | Implemented runtime.yaml owns payload-2.0 integration, MCP/health routes and alias permissions on the supplied API/authorizer |
+| REST API | Pending runtime-rest.yaml supplies function/version/alias/logs/native environment; spec 002 owns attachments, permissions, named stage and usage plans |
 
-REST uses a distinct endpoint and explicit secured cutover; existing HTTP commands/report v1 do not prove REST readiness. [REST handoff](contracts/rest-migration.md) governs new work. [Spec 002](../../../mcp-auth-subscriptions/specs/002-authentication-api-access/spec.md) owns upstream access/Step Functions; [spec 003](../../../mcp-auth-subscriptions/specs/003-billing-subscriptions/spec.md) owns billing.
+[REST handoff](contracts/rest-migration.md) defines explicit secured cutover; legacy commands/report v1 cannot prove REST readiness. Specs 002/003 own access and billing in the sibling repository.
 
 ## Runtime and packaging
 
-- Python 3.11, existing MCP 1.29.0/Starlette 0.47.2/Uvicorn 0.35.0/HTTPX 0.28.1, uv 0.13.1 and Lambda Web Adapter 1.1.0. Preserve advertised Python 3.10–3.13 support and root production locks.
-- Lambda-only `lambda_server.py` validates configuration before importing/reusing the server singleton, enables stateless JSON and SDK session-manager lifespan, then runs one Uvicorn worker on port 8000. Importing this module cannot alter ordinary transports. Test baseline/candidate in separate processes.
-- Preserve DNS-rebinding protection; accept configured exact execute-api authority plus internal readiness hosts, reject Origin/forwarded-host reliance and disable proxy-header trust. Local `/mcp/` normalizes without redirect; POST supports finite JSON/notifications, other methods return 405/Allow POST. `/health` returns exact healthy JSON without provider calls or credentials.
-- Pin real Python/uv/adapter manifests; install `uv sync --locked --no-dev --no-editable`, disable managed Python downloads and package coinlists. Test the native ARM64 image without mounts, under a non-root user/read-only root with writable `/tmp`. No runtime uv/AWS application SDK.
-- Build a single ARM64 image without attestation-index/provenance/SBOM attachments; record source/dirty/lock/config/manifest identities. Build once, test and push the same image. Emulation cannot satisfy native timing gates.
+Use Python 3.11, pinned MCP 1.29.0, Starlette 0.47.2, Uvicorn 0.35.0, HTTPX 0.28.1, uv 0.13.1 and Lambda Web Adapter 1.1.0. Preserve advertised Python 3.10–3.13 ordinary transports. Monitoring adds no application dependency; native AWS tracing and stdlib-only CloudWatch logging preserve ordinary entrypoints.
 
-## Configuration and limits
+lambda_server validates literal native environment before importing the singleton, enables stateless JSON/lifespan and runs one worker on port 8000. Preserve exact execute-api/internal hosts, DNS-rebinding protection, Origin rejection, disabled proxy-header trust, finite responses/notifications, POST-only MCP and slash normalization. Health stays provider-independent. No startup provider/configuration-store read or runtime uv/AWS application SDK.
 
-[Data model](data-model.md) owns the complete parameter/default/environment matrix; [deployment contract](contracts/deployment.md) owns lifecycle details.
+Build one immutable native ARM64 image without attestations/index overhead; record source/dirty/lock/config/manifest identity, test under nonroot/read-only root with writable /tmp, then publish that same image. Emulation does not establish native timing.
 
-| Setting | Value/profile |
-|---|---|
-| Memory / temporary storage / reserved concurrency / log retention | Defaults 1024 MiB / 512 MiB / 5 / 14 days; parameterized |
-| Lambda timeout | Default 25 seconds, range 1–25 |
-| Gateway integration deadline | Legacy HTTP 30 seconds; planned REST 29 seconds; cold initialization shares the window |
-| Client connection / response deadline | 10 / 35 seconds |
-| Payload / storage | Respect six-MiB buffered Lambda envelopes including adapter overhead; writable `/tmp` only |
-| Adapter | Port 8000, readiness `/health` exactly 200, buffered invocation |
+## Configuration and lifecycle
 
-Map all nine `.env.example` settings directly to native Lambda environment variables before startup. Optional provider credentials use NoEcho parameters with empty defaults; supply them through the parameter UI/private file outside checkout/evidence. Validate ranges/literal strings and the combined 4-KB environment limit. Report no credential values/hashes/full environment; NoEcho does not prevent authorized configuration reads. Missing optional values preserve provider fallback. No startup hook/store read/provider call participates in readiness.
+[Data model](data-model.md) owns parameters/environment; [deployment contract](contracts/deployment.md) owns lifecycle and credential handling. Defaults: 1024 MiB memory, 512 MiB temporary storage, concurrency 5, log retention 14 days, timeout 25 seconds (1–25). Legacy gateway deadline is 30 seconds; REST is 29, including cold initialization. Client connect/response deadlines are 10/35 seconds; buffered envelopes stay within six MiB.
 
-## Release and infrastructure
+Map nine provider settings directly from NoEcho/private deployment inputs; preserve literal values, empty fallback and combined 4-KB environment validation. No secrets/hashes/full environment in outputs or evidence. DeploymentRevision changes for each code/environment publication; retained versions and alias rollback restore environment snapshots. Revoked credentials require forward revision with current values.
 
-Bootstrap service ECR → ECR-only publishing IAM → immutable image → runtime/version/live alias → gateway attachment → verification. Same account/region, explicit ownership and no Function URL/VPC/NAT/database. Manual native-ARM publication uses protected main/environment OIDC; retain/reuse account providers explicitly and grant no deployment/billing access. Existing GHCR workflow stays independent.
+Order: service ECR → ECR-only OIDC publishing IAM → immutable image → runtime/version/alias → gateway attachment → verification. Preserve shared identities/access/billing; no Function URL/VPC/NAT/database. Cleanup owns legacy attachments, while access detaches REST wiring before service removal.
 
-Every code/environment update changes DeploymentRevision and publishes a retained version. Configuration changes need no rebuild. CloudFormation selects alias rollback through RollbackVersion; forward release clears it. Rollback restores the old environment snapshot, so revoked provider credentials require a forward revision using current values. Preserve complete environment inputs during updates. Access policy/subscriptions have separate lifecycles.
+## MCP observability
 
-Preflight checks artifact/account/region/architecture, exact gateway/authorizer/alias identity, route conflicts, permissions and concurrency capacity. Cleanup removes only owned resources: service owns legacy attachments; access detaches REST wiring first. Preserve supplied access, billing, shared publishing identities and retained release artifacts.
+Implement FR-018/SC-009 through the [observability contract](contracts/observability.md): Lambda-only JSON startup/request/tool failure logs, opaque correlation, available AWS trace IDs and safe stack locations. No arguments/results, URLs/headers or raw exception text are captured. No third-party telemetry SDK, exporter, custom span, collector or worker is used.
 
-## Verification
+AWS-native Active tracing is explicit (default off); AWS controls Lambda invocation segments/sampling. Existing retention is configurable; development should choose three days. Conditional native X-Ray IAM grants no customer-data rights. Use native metrics/on-demand queries; spec 002 owns REST stage tracing and its 1% rule. Tool/dependency subsegments are not implemented; application failure timings stay in logs.
 
-- Freeze the pre-feature source SHA/descriptors/launch/publishing expectations in `tests/integration/support/baseline.json` using isolated original source, never candidate-derived expectations. Missing provenance fails explicitly.
-- Local checks cover complete paginated catalog, controlled success/errors, invalid input/host/origin/methods, provider-independent health, environment/default/fallback/redaction, native packaging/storage/concurrency/replacement and original Docker/stdio. No production fake-provider flag.
-- Live checks prove upstream denial **before MCP invocation**, every attachment/permission and no alternate bypass, resolved release identity and real protocol interactions. Use the deterministic `futures_watchlist` **tool**; `exchanges://list` cannot satisfy a tool call. Report live provider probes separately.
-- Require 20 complete initialize/discover/tool interactions, five concurrent clients, two fresh environments joined through gateway/platform IDs to successful same-run/release/target interactions, and ten health checks within five seconds. Health-only/unrelated/failed/uncorrelated starts do not count. Bind sanitized `completed-interactions.json` sidecar evidence.
-- `local`, read-only `live` and `combine` preserve compatible release/config/target evidence and all 16 mandatory stages. Missing checks remain not_run; lifecycle walkthrough supplies actual deploy/update/rollback/cleanup evidence. Verifier never provisions/publishes/mutates or directly invokes Lambda as public security proof.
-- Keep [report v1](contracts/verification-report.schema.json) byte-identical for HTTP; pending REST schema v2 adds explicit REST provenance without weakening stages/thresholds/privacy/cold joins. REST adapter event/path/multivalue behavior needs packaged tests.
+## Verification and evidence
 
-Use the optional deployment test group with lazy AWS imports and separate required Python 3.11 CI; original default unit workflows remain independent. Validate affected tests, IaC, schemas and documentation. Current local-only instruction leaves AWS/host/payment acceptance not_run.
+Freeze original descriptors/source/launch provenance; compare candidate in isolated processes with controlled providers. Preserve report v1 bytes/all 16 stages; pending REST v2 requires separate provenance. Run unit/telemetry/transport/verifier/IaC checks; ordinary CI needs no telemetry extra, dedicated Lambda CI installs it.
 
-## Evidence and navigation
-
-55 tasks: 42 checked, 13 pending. Earlier 516 passing service tests are historical local evidence; they do not establish REST/access/billing acceptance. Original task/checklist markers and report v1 remain authoritative. The constitution is a template with no enacted additional gate.
-
-[Research](research.md) records legacy design decisions. [Quickstart](quickstart.md), [operator guide](../../docs/lambda-deployment.md), [HTTP contract](contracts/mcp-http.md), [REST handoff](contracts/rest-migration.md) and [history](../scope-migration.md) hold detailed procedures/evidence.
+Live acceptance still requires 20 complete interactions, five clients, two gateway/platform-correlated fresh environments and ten health checks under five seconds, plus denied-before-MCP/no-bypass and deploy/update/rollback/cleanup evidence. Missing checks remain not_run; prior 516-test evidence is historical. T056/T057 implement local observability; T058 retains native-image/cloud delivery/overhead acceptance. Reviewer checklists and existing task states remain unchanged unless their work is actually verified.

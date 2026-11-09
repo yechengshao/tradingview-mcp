@@ -70,7 +70,8 @@ def test_live_control_plane_has_no_mutating_sdk_calls():
 
 
 @pytest.mark.parametrize('explicit_clear',[False,True])
-def test_preflight_preserves_omitted_and_clears_explicit_credential(tmp_path,monkeypatch,explicit_clear):
+@pytest.mark.parametrize('tracing',[False,True])
+def test_preflight_preserves_omitted_and_clears_explicit_credential(tmp_path,monkeypatch,explicit_clear,tracing):
     """All clients are read-only fakes; values are synthetic and never printed."""
     import json
     from types import SimpleNamespace
@@ -102,9 +103,11 @@ def test_preflight_preserves_omitted_and_clears_explicit_credential(tmp_path,mon
     monkeypatch.setattr(lambda_server,'validate_environment',capture)
     entries=[{'ParameterKey':'DeploymentRevision','ParameterValue':'new'}]
     if explicit_clear:entries.append({'ParameterKey':'ProxyPassword','ParameterValue':''})
+    if tracing:entries.extend([{'ParameterKey':'TracingMode','ParameterValue':'Active'},{'ParameterKey':'ObservabilityEnvironment','ParameterValue':'production'}])
     path=tmp_path/'private.json';path.write_text(json.dumps(entries));path.chmod(0o600)
     assert v.preflight(SimpleNamespace(region='ca-central-1',stack='test',parameters_file=str(path)))==0
     assert observed[0]['PROXY_PASSWORD']==('' if explicit_clear else 'synthetic-keep')
+    assert observed[0]['TRADINGVIEW_MCP_ENVIRONMENT']==('production' if tracing else 'development')
 
 
 @pytest.mark.parametrize('wrong_version',[False,True])

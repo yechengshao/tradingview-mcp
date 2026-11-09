@@ -131,6 +131,23 @@
       "Type": "String",
       "Default": "",
       "NoEcho": true
+    },
+    "TracingMode": {
+      "Type": "String",
+      "Default": "PassThrough",
+      "AllowedValues": [
+        "PassThrough",
+        "Active"
+      ]
+    },
+    "ObservabilityEnvironment": {
+      "Type": "String",
+      "Default": "development",
+      "AllowedValues": [
+        "development",
+        "test",
+        "production"
+      ]
     }
   },
   "Conditions": {
@@ -144,6 +161,14 @@
             ""
           ]
         }
+      ]
+    },
+    "TracingEnabled": {
+      "Fn::Equals": [
+        {
+          "Ref": "TracingMode"
+        },
+        "Active"
       ]
     }
   },
@@ -224,6 +249,30 @@
                 }
               ]
             }
+          },
+          {
+            "Fn::If": [
+              "TracingEnabled",
+              {
+                "PolicyName": "TraceExport",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "xray:PutTraceSegments",
+                        "xray:PutTelemetryRecords"
+                      ],
+                      "Resource": "*"
+                    }
+                  ]
+                }
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           }
         ]
       }
@@ -318,7 +367,10 @@
             "PYTHONUNBUFFERED": "1",
             "HOME": "/tmp",
             "TMPDIR": "/tmp",
-            "UV_CACHE_DIR": "/tmp/uv"
+            "UV_CACHE_DIR": "/tmp/uv",
+            "TRADINGVIEW_MCP_ENVIRONMENT": {
+              "Ref": "ObservabilityEnvironment"
+            }
           }
         },
         "Tags": [
@@ -336,7 +388,12 @@
               "Ref": "AWS::StackName"
             }
           }
-        ]
+        ],
+        "TracingConfig": {
+          "Mode": {
+            "Ref": "TracingMode"
+          }
+        }
       }
     },
     "PublishedVersion": {

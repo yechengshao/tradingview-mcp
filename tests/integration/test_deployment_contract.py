@@ -75,3 +75,29 @@ def test_release_lifecycle_environment_snapshots_and_outputs():
 def test_startup_quota_scope_matches_complete_configured_environment():
     from tradingview_mcp.lambda_server import CONFIGURED_KEYS
     assert set(template('runtime')['Resources']['Function']['Properties']['Environment']['Variables'])==CONFIGURED_KEYS
+
+
+def test_mcp_tracing_is_opt_in_and_has_only_conditional_export_rights():
+    t=template('runtime')
+    p=t['Parameters'];f=t['Resources']['Function']['Properties']
+    assert p['TracingMode']['Default']=='PassThrough'
+    assert p['TracingMode']['AllowedValues']==['PassThrough','Active']
+    assert 'TraceSampleRate' not in p
+    assert f['TracingConfig']=={'Mode':{'Ref':'TracingMode'}}
+    assert t['Conditions']['TracingEnabled']=={'Fn::Equals':[{'Ref':'TracingMode'},'Active']}
+    conditional=t['Resources']['ExecutionRole']['Properties']['Policies'][1]['Fn::If']
+    assert conditional[0]=='TracingEnabled' and conditional[2]=={'Ref':'AWS::NoValue'}
+    statements=conditional[1]['PolicyDocument']['Statement']
+    assert statements==[{'Effect':'Allow','Action':['xray:PutTraceSegments','xray:PutTelemetryRecords'],'Resource':'*'}]
+    env=f['Environment']['Variables']
+    assert 'TRADINGVIEW_MCP_TRACING_ENABLED' not in env and 'TRADINGVIEW_MCP_TRACE_SAMPLE_RATE' not in env
+    assert not any(r['Type'] in ('AWS::CloudWatch::Alarm','AWS::CloudWatch::Dashboard') for r in t['Resources'].values())
+
+
+def test_native_monitoring_adds_no_dependency_and_preserves_original_launch_files():
+    import tomllib
+    py=tomllib.loads((ROOT/'pyproject.toml').read_text())
+    assert 'observability' not in py['project'].get('optional-dependencies',{})
+    assert not any('opentelemetry' in value for value in py['project']['dependencies'])
+    assert '--extra observability' not in (ROOT/'Dockerfile.lambda').read_text()
+    assert '--extra observability' not in (ROOT/'Dockerfile').read_text()

@@ -235,3 +235,15 @@ T040 remains unchecked for real supplied-target acceptance (authorization-before
 - [ ] T055 Only with explicit live prerequisites, perform REST public transport/denial-before-service/no-bypass/release/cold-concurrency/update-rollback-cleanup acceptance with spec-002 gateway, capturing matching report-v2 evidence before cleanup. Keep legacy endpoint secured and retained unless explicitly disabled. Local-only instruction leaves this unchecked/not_run; prior T040/T044 HTTP acceptance cannot substitute. Files: `docs/lambda-deployment.md`, `/tmp/tradingview-lambda-evidence/rest-live.json`. Depends on T054 and spec-002 deployed protected REST target. Covers FR-002, FR-005, FR-009, FR-011, FR-013, FR-014, FR-015, FR-017, SC-001, SC-003, SC-004, SC-007, SC-008.
 
 Current total: **55 tasks, 42 checked, 13 unchecked**. New REST/OAuth/payment code is not implemented by this planning revision; the original 516-test run remains historical service evidence.
+
+
+## Phase 10: MCP observability
+
+- [X] T056 Add isolated CloudWatch JSON/redaction/context and native AWS metadata tests plus conditional tracing-IAM/template tests; dependencies: existing runtime baseline; covers FR-014, FR-018, SC-009.
+- [X] T057 Implement stdlib-only Lambda diagnostics and native AWS tracing parameters/IAM and operator guidance while preserving ordinary transports; dependencies: T056; covers FR-006, FR-014, FR-017, FR-018, SC-006, SC-008, SC-009.
+- [ ] T058 Validate native ARM64 image and separately authorized live CloudWatch/X-Ray delivery, adapter parent linkage, effective sampling and overhead without weakening existing live gates; dependencies: T057; covers FR-011, FR-013, FR-018, SC-007, SC-009.
+
+
+**AWS-native observability implementation — 2026-11-08:** T056/T057 use stdlib diagnostics and native Lambda/API Gateway tracing only; no OpenTelemetry, tracing SDK, exporter, collector or custom span remains. 114 affected tests pass (one original-image Docker case explicitly deselected), plus 479 unit tests in a separate overlapping run; CloudFormation lint and package builds pass; native ARM64/cloud delivery remains T058. Original dependency and launch boundaries are preserved.
+
+Current total: **58 tasks, 44 checked, 14 unchecked**. Existing REST/publishing/live tasks and reviewer markers retain their states; no cloud deployment, image publication or notification ran.
