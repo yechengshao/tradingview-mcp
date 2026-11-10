@@ -21,6 +21,7 @@ Follow-up TODOs: none.
   to it instead of repeating it.
 - Each task MUST use one actionable sentence, adding paths and dependencies only
   when necessary.
+- `tasks.md` MUST hold only task lines and their checkbox state; progress evidence and verification logs belong in `docs/` or a feature status file, and specs state requirements only.
 - Documents MUST describe current decisions and omit generic advice,
   conversational history, and redundant summaries; retain history only when needed
   for compatibility or migration.
@@ -48,4 +49,8 @@ the changed rule, rationale, version, and amendment date. Use a major version fo
 incompatible rule changes, a minor version for new or expanded principles, and a
 patch version for clarifications. Reviews MUST check compliance with this constitution.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-04
+## Amendment Record
+
+- **1.0.1 — 2026-11-10**: Clarified that `tasks.md` holds only task lines and checkbox state, with progress evidence in `docs/` or a status file. Rationale: task files had accumulated dated evidence logs, which made counts and status drift out of sync.
+
+**Version**: 1.0.1 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-10
