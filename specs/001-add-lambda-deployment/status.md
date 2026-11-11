@@ -50,3 +50,7 @@ Current total: **58 tasks, 44 checked, 14 unchecked**. Existing REST/publishing/
 ## Push-triggered Docker tests (2026-11-11)
 
 `.github/workflows/test-docker.yml` builds the image on the ARM runner for every push and pull request to `main` and runs `test_lambda_container.py` against it, with prerequisites required rather than skipped. It does not push to ECR. The Lambda Web Adapter (T051) layer is not yet covered; those checks still need a Runtime Interface Emulator step. Not yet run on GitHub.
+
+## Docker test quota (2026-11-11)
+
+`test-docker.yml` now runs only when image inputs change (Dockerfile, dependency lock, source, container tests), plus manual dispatch. Concurrent runs on the same ref cancel older ones. Reason: ARM runner minutes are limited, and it was running on every push. `test-lambda.yml` (hermetic checks on `ubuntu-latest`) is unchanged.
