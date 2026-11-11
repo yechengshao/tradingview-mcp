@@ -38,3 +38,7 @@ Current total: **58 tasks, 44 checked, 14 unchecked**. Existing REST/publishing/
 ## T051 local increment (2026-11-11)
 
 `tests/integration/test_lambda_rest_transport.py` with hand-written REST-v1 fixtures in `tests/integration/fixtures/rest_v1/` covers canonical POST/GET routing, trailing slash, base64 bodies, repeated headers and query, the exact host and Origin rules, 405 with Allow POST, stateless JSON responses, and rejection of HTTP API payload 2.0 events; 12 pass. The event-to-HTTP step is a test model of the adapter's documented mapping, because the pinned Lambda Web Adapter 1.1.0 image could not be pulled here (public ECR rate limit, and the GitHub release download returned no binary). T051 stays unchecked until the packaged adapter is exercised through a simulated Runtime API against the built image. Stage-prefixed event paths are not routed, so base-path stripping stays unimplemented as the contract requires.
+
+## T052 local increment (2026-11-11)
+
+`infra/lambda/runtime-rest.yaml` is the REST-profile service stack: function, log group, log-only role, published version and `live` alias, with no API Gateway resources or invocation permissions. It takes `RestApiId` for the execute-api host and exposes the nine identity and alias outputs that access needs. `tests/integration/test_deployment_contract.py` asserts those invariants, and it passes with the existing contract tests (7). `cfn-lint` passes on the template. Live deployment, and the packaged-adapter checks that T051 still needs, are not run, so T052 stays unchecked.

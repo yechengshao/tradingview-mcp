@@ -101,3 +101,30 @@ def test_native_monitoring_adds_no_dependency_and_preserves_original_launch_file
     assert not any('opentelemetry' in value for value in py['project']['dependencies'])
     assert '--extra observability' not in (ROOT/'Dockerfile.lambda').read_text()
     assert '--extra observability' not in (ROOT/'Dockerfile').read_text()
+
+
+def test_rest_runtime_is_function_only_and_leaves_gateway_wiring_to_access():
+    # T052: service stack for the REST profile. Access owns every API Gateway attachment.
+    t = template('runtime-rest')
+    resources = t['Resources']
+    types = [r['Type'] for r in resources.values()]
+    for forbidden in ['AWS::ApiGatewayV2::Api', 'AWS::ApiGatewayV2::Integration', 'AWS::ApiGatewayV2::Route',
+                      'AWS::ApiGatewayV2::Stage', 'AWS::ApiGatewayV2::Authorizer', 'AWS::ApiGateway::Method',
+                      'AWS::ApiGateway::Resource', 'AWS::ApiGateway::Deployment', 'AWS::ApiGateway::RestApi',
+                      'AWS::Lambda::Permission', 'AWS::Lambda::Url', 'AWS::Cognito::UserPool']:
+        assert forbidden not in types
+    assert {'LogGroup', 'ExecutionRole', 'Function', 'PublishedVersion', 'LiveAlias'} == set(resources)
+    f = resources['Function']['Properties']
+    assert f['Architectures'] == ['arm64'] and f['PackageType'] == 'Image' and 'VpcConfig' not in f
+    assert '@sha256:' in t['Parameters']['ImageUri']['AllowedPattern']
+    assert f['Timeout'] == {'Ref': 'TimeoutSeconds'}
+    assert int(t['Parameters']['TimeoutSeconds']['Default']) <= 25
+    assert f['Timeout'] and resources['LiveAlias']['Properties']['Name'] == 'live'
+    assert set(t['Parameters']) >= {'RestApiId'} and 'ApiId' not in t['Parameters'] and 'AuthorizerId' not in t['Parameters']
+    variables = f['Environment']['Variables']
+    assert variables['TRADINGVIEW_MCP_PUBLIC_HOST'] == {'Fn::Sub': '${RestApiId}.execute-api.${AWS::Region}.amazonaws.com'}
+    assert set(variables) == set(template('runtime')['Resources']['Function']['Properties']['Environment']['Variables'])
+    expected = {'FunctionArn', 'AliasArn', 'PublishedVersion', 'ActiveVersion', 'ImageUri', 'SourceCommit',
+                'LockSha256', 'DeploymentRevision', 'LogGroupName'}
+    assert set(t['Outputs']) == expected
+    assert all(p not in json.dumps(t['Outputs']) for p in ['MarketauxApiToken', 'ProxyUsernamePrefix', 'ProxyPassword'])
