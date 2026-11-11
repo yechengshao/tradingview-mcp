@@ -46,3 +46,7 @@ Current total: **58 tasks, 44 checked, 14 unchecked**. Existing REST/publishing/
 ## Publication workflow test gate (2026-11-11)
 
 `publish-lambda-image.yml` now runs `tests/integration/test_lambda_container.py` against the exact built image (`lambda-tested:local`) before the local verifier gate and before any ECR login or push, with `REQUIRE_LAMBDA_CONTAINER_TESTS=1` so missing Docker or image prerequisites fail rather than skip. `test-lambda.yml` also runs the REST-v1 transport checks. Neither workflow has run yet; the first run on GitHub's ARM runner is the real evidence. The packaged-adapter Runtime API checks (T051) are not yet in the workflow.
+
+## Push-triggered Docker tests (2026-11-11)
+
+`.github/workflows/test-docker.yml` builds the image on the ARM runner for every push and pull request to `main` and runs `test_lambda_container.py` against it, with prerequisites required rather than skipped. It does not push to ECR. The Lambda Web Adapter (T051) layer is not yet covered; those checks still need a Runtime Interface Emulator step. Not yet run on GitHub.
