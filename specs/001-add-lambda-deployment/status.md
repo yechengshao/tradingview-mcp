@@ -54,3 +54,7 @@ Current total: **58 tasks, 44 checked, 14 unchecked**. Existing REST/publishing/
 ## Docker test quota (2026-11-11)
 
 `test-docker.yml` now runs only when image inputs change (Dockerfile, dependency lock, source, container tests), plus manual dispatch. Concurrent runs on the same ref cancel older ones. Reason: ARM runner minutes are limited, and it was running on every push. `test-lambda.yml` (hermetic checks on `ubuntu-latest`) is unchanged.
+
+## Service publishing IAM (2026-11-11)
+
+`infra/lambda/publishing-iam.yaml` (T045 tests first, T046 template) creates the GitHub OIDC provider (retained, since none exists in the account), and a publisher role trusted only for `yechengshao/tradingview-mcp` in the `lambda-publication` environment. Its only permissions are ECR login and pushing/reading images in the `tradingview-mcp-lambda` repository. `tests/integration/test_publishing_iam.py` passes (4 tests) and `cfn-lint` passes. Not deployed. The GitHub thumbprints in the provider are copied from GitHub's published values and must be verified before deployment. T045/T046 stay unchecked until a deploy and a real publish run confirm them.
