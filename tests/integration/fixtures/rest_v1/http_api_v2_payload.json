@@ -1,0 +1,18 @@
+{
+  "version": "2.0",
+  "routeKey": "ANY /mcp",
+  "rawPath": "/mcp",
+  "rawQueryString": "",
+  "headers": {
+    "host": "example123.execute-api.ca-central-1.amazonaws.com"
+  },
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/mcp"
+    },
+    "stage": "$default"
+  },
+  "body": "{\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": {\"protocolVersion\": \"2025-03-26\", \"capabilities\": {}, \"clientInfo\": {\"name\": \"rest-v1-fixture\", \"version\": \"1\"}}}",
+  "isBase64Encoded": false
+}

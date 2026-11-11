@@ -1,0 +1,38 @@
+{
+  "resource": "/{proxy+}",
+  "path": "/mcp",
+  "httpMethod": "POST",
+  "headers": {
+    "Host": "example123.execute-api.ca-central-1.amazonaws.com",
+    "Accept": "application/json, text/event-stream",
+    "Content-Type": "application/json"
+  },
+  "multiValueHeaders": {
+    "Host": [
+      "example123.execute-api.ca-central-1.amazonaws.com"
+    ],
+    "Accept": [
+      "application/json, text/event-stream"
+    ],
+    "Content-Type": [
+      "application/json"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "requestContext": {
+    "resourcePath": "/{proxy+}",
+    "httpMethod": "POST",
+    "path": "/prod/mcp",
+    "stage": "prod",
+    "domainName": "example123.execute-api.ca-central-1.amazonaws.com",
+    "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+    "identity": {
+      "sourceIp": "203.0.113.10"
+    }
+  },
+  "body": "eyJqc29ucnBjIjogIjIuMCIsICJpZCI6IDEsICJtZXRob2QiOiAiaW5pdGlhbGl6ZSIsICJwYXJhbXMiOiB7InByb3RvY29sVmVyc2lvbiI6ICIyMDI1LTAzLTI2IiwgImNhcGFiaWxpdGllcyI6IHt9LCAiY2xpZW50SW5mbyI6IHsibmFtZSI6ICJyZXN0LXYxLWZpeHR1cmUiLCAidmVyc2lvbiI6ICIxIn19fQ==",
+  "isBase64Encoded": true
+}

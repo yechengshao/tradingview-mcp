@@ -1,0 +1,38 @@
+{
+  "resource": "/health",
+  "path": "/health",
+  "httpMethod": "GET",
+  "headers": {
+    "Host": "example123.execute-api.ca-central-1.amazonaws.com",
+    "Accept": "application/json, text/event-stream",
+    "Content-Type": "application/json"
+  },
+  "multiValueHeaders": {
+    "Host": [
+      "example123.execute-api.ca-central-1.amazonaws.com"
+    ],
+    "Accept": [
+      "application/json, text/event-stream"
+    ],
+    "Content-Type": [
+      "application/json"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "requestContext": {
+    "resourcePath": "/{proxy+}",
+    "httpMethod": "GET",
+    "path": "/prod/health",
+    "stage": "prod",
+    "domainName": "example123.execute-api.ca-central-1.amazonaws.com",
+    "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+    "identity": {
+      "sourceIp": "203.0.113.10"
+    }
+  },
+  "body": null,
+  "isBase64Encoded": false
+}
