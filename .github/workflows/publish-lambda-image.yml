@@ -55,6 +55,11 @@ jobs:
           trap 'rm -rf "$BASELINE_CONTEXT"' EXIT
           git archive "$BASELINE_REF" | tar -x -C "$BASELINE_CONTEXT"
           docker build --platform linux/arm64 --label "org.opencontainers.image.revision=$BASELINE_REF" -t lambda-baseline:local "$BASELINE_CONTEXT"
+      - name: Test the exact built image before publication
+        env:
+          LAMBDA_TEST_IMAGE: lambda-tested:local
+          REQUIRE_LAMBDA_CONTAINER_TESTS: '1'
+        run: uv run --locked --group deployment pytest -q tests/integration/test_lambda_container.py
       - name: Require all local acceptance gates before pushing
         run: |
           set +e

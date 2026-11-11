@@ -42,3 +42,7 @@ Current total: **58 tasks, 44 checked, 14 unchecked**. Existing REST/publishing/
 ## T052 local increment (2026-11-11)
 
 `infra/lambda/runtime-rest.yaml` is the REST-profile service stack: function, log group, log-only role, published version and `live` alias, with no API Gateway resources or invocation permissions. It takes `RestApiId` for the execute-api host and exposes the nine identity and alias outputs that access needs. `tests/integration/test_deployment_contract.py` asserts those invariants, and it passes with the existing contract tests (7). `cfn-lint` passes on the template. Live deployment, and the packaged-adapter checks that T051 still needs, are not run, so T052 stays unchecked.
+
+## Publication workflow test gate (2026-11-11)
+
+`publish-lambda-image.yml` now runs `tests/integration/test_lambda_container.py` against the exact built image (`lambda-tested:local`) before the local verifier gate and before any ECR login or push, with `REQUIRE_LAMBDA_CONTAINER_TESTS=1` so missing Docker or image prerequisites fail rather than skip. `test-lambda.yml` also runs the REST-v1 transport checks. Neither workflow has run yet; the first run on GitHub's ARM runner is the real evidence. The packaged-adapter Runtime API checks (T051) are not yet in the workflow.
