@@ -56,9 +56,10 @@
     },
     "ReservedConcurrency": {
       "Type": "Number",
-      "Default": 5,
-      "MinValue": 1,
-      "MaxValue": 1000
+      "Default": 0,
+      "MinValue": 0,
+      "MaxValue": 1000,
+      "Description": "0 omits the reservation (required when the account has too little unreserved concurrency); set a positive value after the Lambda quota is raised."
     },
     "MarketauxDailyBudget": {
       "Type": "Number",
@@ -166,6 +167,18 @@
           "Ref": "TracingMode"
         },
         "Active"
+      ]
+    },
+    "HasReservedConcurrency": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "ReservedConcurrency"
+            },
+            "0"
+          ]
+        }
       ]
     }
   },
@@ -313,7 +326,15 @@
           }
         },
         "ReservedConcurrentExecutions": {
-          "Ref": "ReservedConcurrency"
+          "Fn::If": [
+            "HasReservedConcurrency",
+            {
+              "Ref": "ReservedConcurrency"
+            },
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
         },
         "Environment": {
           "Variables": {

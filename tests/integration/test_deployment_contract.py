@@ -128,3 +128,13 @@ def test_rest_runtime_is_function_only_and_leaves_gateway_wiring_to_access():
                 'LockSha256', 'DeploymentRevision', 'LogGroupName'}
     assert set(t['Outputs']) == expected
     assert all(p not in json.dumps(t['Outputs']) for p in ['MarketauxApiToken', 'ProxyUsernamePrefix', 'ProxyPassword'])
+
+
+def test_rest_runtime_reserved_concurrency_is_optional_for_low_quota_accounts():
+    # New accounts can lack the unreserved concurrency needed for a reservation; 0 omits it.
+    t = template('runtime-rest')
+    param = t['Parameters']['ReservedConcurrency']
+    assert param['Default'] == 0 and param['MinValue'] == 0
+    assert 'HasReservedConcurrency' in t['Conditions']
+    f = t['Resources']['Function']['Properties']
+    assert f['ReservedConcurrentExecutions'] == {'Fn::If': ['HasReservedConcurrency', {'Ref': 'ReservedConcurrency'}, {'Ref': 'AWS::NoValue'}]}

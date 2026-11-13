@@ -74,3 +74,7 @@ Publishing IAM is checked: the `tradingview-mcp-publishing` stack deployed in ac
 ## T051 accepted (2026-11-13)
 
 `Lambda image Docker tests` run #5 (push `62a0b1a`, `main`) passed on GitHub's ARM runner. It built the image, ran the container tests, and drove the REST-v1 fixtures through the arm64 Lambda Runtime Interface Emulator, checking 200, 405, 421, 403, 404 and the exact health body. Run #4 had failed on an `Allow` header assertion in the test itself, now corrected. Caveat: the emulator is a local stand-in for the Lambda service, so real API Gateway and Lambda behaviour remains for T040 and T055.
+
+## Reserved concurrency optional (2026-11-13)
+
+The function-only test failed to create the Lambda because this account's unreserved concurrency minimum (10) rules out the template's reservation of 5. `runtime-rest.yaml` now defaults `ReservedConcurrency` to 0, which omits the reservation. Tests were written first. A positive value is for accounts whose Lambda quota has been raised.
