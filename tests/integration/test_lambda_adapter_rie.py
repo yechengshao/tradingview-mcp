@@ -89,7 +89,10 @@ def test_health_is_exact_through_the_adapter(emulator):
 def test_get_on_mcp_is_405_with_allow_post(emulator):
     response = invoke(emulator, 'get_mcp.json')
     assert response['statusCode'] == 405
-    assert response['headers']['allow'] == 'POST'
+    # REST-v1 responses may carry headers in either map; compare names case-insensitively.
+    allow = [v for k, v in response.get('headers', {}).items() if k.lower() == 'allow']
+    allow += [v for k, values in response.get('multiValueHeaders', {}).items() if k.lower() == 'allow' for v in values]
+    assert allow and all(v == 'POST' for v in allow), response
 
 
 def test_unexpected_host_is_421(emulator):
