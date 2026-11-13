@@ -89,3 +89,18 @@ def test_observability_configuration_is_validated_without_echo(key,value):
     with pytest.raises(ValueError) as caught:
         module().validate_environment({'TRADINGVIEW_MCP_PUBLIC_HOST':PUBLIC,key:value})
     assert value not in str(caught.value)
+
+
+def test_startup_emits_bounded_phase_timings_without_configuration_values():
+    # Startup phases are timed so cold-start cost can be attributed on Lambda.
+    import json as _json
+    import subprocess as _sp
+    env = dict(os.environ, TRADINGVIEW_MCP_PUBLIC_HOST=PUBLIC, PROXY_PASSWORD='sentinel-secret-value')
+    result = _sp.run([sys.executable, '-c', 'from tradingview_mcp.lambda_server import create_app; create_app()'],
+                     capture_output=True, env=env, timeout=120)
+    assert result.returncode == 0, result.stderr.decode()[-2000:]
+    records = [_json.loads(line) for line in result.stdout.decode().splitlines() if line.startswith('{')]
+    phases = {r['outcome']: r['duration_ms'] for r in records if r.get('operation') == 'startup.phase'}
+    assert {'validate_environment', 'import_server', 'configure_mcp', 'build_http_app'} <= phases.keys()
+    assert all(isinstance(v, (int, float)) and v >= 0 for v in phases.values())
+    assert 'sentinel-secret-value' not in result.stdout.decode() + result.stderr.decode()

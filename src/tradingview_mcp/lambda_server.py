@@ -93,13 +93,26 @@ class LambdaBoundary:
 
 def create_app():
     # Docker/platform defaults are not part of Lambda's configured 4-KB map.
+    import time
+    started = time.perf_counter()
+    timings = []
+
+    def phase(name, begin):
+        now = time.perf_counter()
+        timings.append((name, round((now - begin) * 1000, 3)))
+        return now
+
+    begin = time.perf_counter()
     env=validate_environment({k:v for k,v in os.environ.items() if k in CONFIGURED_KEYS})
+    begin = phase('validate_environment', begin)
     for key in APPLICATION_DEFAULTS:
         os.environ[key]=env[key]
     from tradingview_mcp.observability import configure, ObservedApp
     telemetry = configure(env)
     # Import only after environment validation. No cloud/store/provider startup call.
+    begin = phase('import_observability', begin)
     from tradingview_mcp.server import mcp
+    begin = phase('import_server', begin)
     from mcp.server.transport_security import TransportSecuritySettings
     if mcp._session_manager is not None:
         raise RuntimeError('Lambda application must be created once per process')
@@ -109,7 +122,14 @@ def create_app():
     mcp.settings.transport_security=TransportSecuritySettings(
         enable_dns_rebinding_protection=True,allowed_hosts=sorted(boundary_hosts),allowed_origins=[])
     telemetry.wrap_tools(mcp._tool_manager)
-    return ObservedApp(LambdaBoundary(mcp.streamable_http_app(),env['TRADINGVIEW_MCP_PUBLIC_HOST']), telemetry)
+    begin = phase('configure_mcp', begin)
+    app = ObservedApp(LambdaBoundary(mcp.streamable_http_app(),env['TRADINGVIEW_MCP_PUBLIC_HOST']), telemetry)
+    phase('build_http_app', begin)
+    for name, ms in timings:
+        telemetry.emit('INFO', operation='startup.phase', outcome=name, duration_ms=ms)
+    telemetry.emit('INFO', operation='startup.phase', outcome='create_app_total',
+                   duration_ms=round((time.perf_counter() - started) * 1000, 3))
+    return app
 
 
 def main():
