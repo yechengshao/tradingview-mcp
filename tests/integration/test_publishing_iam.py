@@ -31,8 +31,10 @@ def test_publisher_role_trusts_only_the_publication_environment():
     assert s['Principal'] == {'Federated': {'Ref': 'GitHubOidcProvider'}}
     assert s['Condition']['StringEquals']['token.actions.githubusercontent.com:aud'] == 'sts.amazonaws.com'
     assert s['Condition']['StringEquals']['token.actions.githubusercontent.com:sub'] == {
-        'Fn::Sub': 'repo:${GithubRepository}:environment:${PublicationEnvironment}'}
-    assert t['Parameters']['GithubRepository']['Default'] == 'yechengshao/tradingview-mcp'
+        'Fn::Sub': '${GithubSubjectPrefix}:environment:${PublicationEnvironment}'}
+    # Immutable subject claims: GitHub's sub uses owner/repo IDs, not names.
+    assert t['Parameters']['GithubSubjectPrefix']['Default'] == 'repo:yechengshao@7886247/tradingview-mcp@1423980237'
+    assert 'GithubRepository' not in t['Parameters']
     assert t['Parameters']['PublicationEnvironment']['Default'] == 'lambda-publication'
 
 

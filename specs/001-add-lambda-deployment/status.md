@@ -58,3 +58,7 @@ Current total: **58 tasks, 44 checked, 14 unchecked**. Existing REST/publishing/
 ## Service publishing IAM (2026-11-11)
 
 `infra/lambda/publishing-iam.yaml` (T045 tests first, T046 template) creates the GitHub OIDC provider (retained, since none exists in the account), and a publisher role trusted only for `yechengshao/tradingview-mcp` in the `lambda-publication` environment. Its only permissions are ECR login and pushing/reading images in the `tradingview-mcp-lambda` repository. `tests/integration/test_publishing_iam.py` passes (4 tests) and `cfn-lint` passes. Not deployed. The GitHub thumbprints in the provider are copied from GitHub's published values and must be verified before deployment. T045/T046 stay unchecked until a deploy and a real publish run confirm them.
+
+## Publishing trust fix: immutable subject claims (2026-11-13)
+
+The repository uses immutable OIDC subject claims, so GitHub's `sub` is `repo:yechengshao@7886247/tradingview-mcp@1423980237:environment:lambda-publication`, not the name-based form. `publishing-iam.yaml` now takes `GithubSubjectPrefix` with that value, and the test asserts it. The stack must be updated to apply the corrected trust policy; the retained OIDC provider is unchanged.

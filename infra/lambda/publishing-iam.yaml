@@ -2,11 +2,6 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "Service publishing IAM: GitHub OIDC provider (created once, retained) and a role that can only push the tested image to the MCP ECR repository from the lambda-publication environment. No deployment, Lambda, billing or identity permissions.",
   "Parameters": {
-    "GithubRepository": {
-      "Type": "String",
-      "Default": "yechengshao/tradingview-mcp",
-      "AllowedPattern": "[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"
-    },
     "PublicationEnvironment": {
       "Type": "String",
       "Default": "lambda-publication",
@@ -16,6 +11,12 @@
       "Type": "String",
       "Default": "tradingview-mcp-lambda",
       "AllowedPattern": "[a-z][a-z0-9._/-]{1,254}"
+    },
+    "GithubSubjectPrefix": {
+      "Type": "String",
+      "Default": "repo:yechengshao@7886247/tradingview-mcp@1423980237",
+      "AllowedPattern": "repo:[A-Za-z0-9_.-]+@[0-9]+/[A-Za-z0-9_.-]+@[0-9]+",
+      "Description": "Immutable GitHub subject claim prefix (owner@id/repo@id) for the repository."
     }
   },
   "Resources": {
@@ -65,7 +66,7 @@
                 "StringEquals": {
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                   "token.actions.githubusercontent.com:sub": {
-                    "Fn::Sub": "repo:${GithubRepository}:environment:${PublicationEnvironment}"
+                    "Fn::Sub": "${GithubSubjectPrefix}:environment:${PublicationEnvironment}"
                   }
                 }
               }
