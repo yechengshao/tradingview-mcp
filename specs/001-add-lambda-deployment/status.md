@@ -94,3 +94,18 @@ Two findings:
 - The same cold start at 2048 MB still reported `INIT_REPORT Init Duration: 10000.28 ms, Status: timeout`. More CPU alone does not fix it.
 - Not yet measured: time spent in image pull, Python startup, `create_app`, or uvicorn binding. The next step is sanitized startup-phase timing logs inside the function, then a cold-start measurement from the same image.
 - The test stacks `tradingview-mcp-function-test` and `tradingview-mcp-coldstart` were deleted.
+
+## Startup phase timings on Lambda (2026-11-13)
+
+Stack `tradingview-mcp-coldstart` (image `sha256:ec5f2ac8…a002`, commit `6da1a75`, ca-central-1) ran one cold invocation on the `live` alias with a REST-v1 health event, then was deleted. `INIT_REPORT` reported `Init Duration: 9999.78 ms, Status: timeout`. The app was still not ready after 8 s of probing.
+
+| Phase (`startup.phase`) | Lambda (ms) |
+|---|---|
+| validate_environment | 0.24 |
+| import_observability | 5.3 |
+| import_server | 8,853.9 |
+| configure_mcp | 0.15 |
+| build_http_app | 0.11 |
+| create_app_total | 8,859.9 |
+
+About 99% of init is the `tradingview_mcp.server` import, which is the eager pandas/numpy load. Locally that import takes about 0.7 s, so the Lambda container is roughly 12 times slower at this step. Memory is the variable to test next; the earlier 2048 MB run was not phase-timed. Do not switch to a lazy import without re-checking the stdio deadlock in issue #91.
