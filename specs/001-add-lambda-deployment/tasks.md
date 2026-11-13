@@ -4,7 +4,7 @@ description: "Dependency-ordered implementation tasks for Add AWS Lambda Deploym
 
 # Tasks: Add AWS Lambda Deployment
 
-**Status and history**: [status.md](status.md). Task IDs and checkbox states are authoritative here: 44 of 58 checked. Original T001–T044 keep their completion states; T045–T055 and T058 are service follow-up; access and billing work is tracked in [spec 002](../../../mcp-auth-subscriptions/specs/002-authentication-api-access/tasks.md) and [spec 003](../../../mcp-auth-subscriptions/specs/003-billing-subscriptions/tasks.md).
+**Status and history**: [status.md](status.md). Task IDs and checkbox states are authoritative here: 46 of 58 checked. Original T001–T044 keep their completion states; T045–T055 and T058 are service follow-up; access and billing work is tracked in [spec 002](../../../mcp-auth-subscriptions/specs/002-authentication-api-access/tasks.md) and [spec 003](../../../mcp-auth-subscriptions/specs/003-billing-subscriptions/tasks.md).
 
 **Inputs**: [spec](spec.md), [plan](plan.md), [research](research.md), [data model](data-model.md), [contracts](contracts/deployment.md), [quickstart](quickstart.md).
 **Format**: `- [ ] T### [P] [US#] Task. Files: paths. Depends: IDs. Covers: requirements.` `[P]` marks independent files, not permission to edit shared files concurrently.
@@ -77,8 +77,8 @@ description: "Dependency-ordered implementation tasks for Add AWS Lambda Deploym
 
 ## Phase 8: Service publishing and sibling-interface follow-up
 
-- [ ] T045 [P] Add service publishing-IAM tests for exact repository and environment trust, selected ECR actions, and no deployment, identity or billing permissions or static keys. Files: `tests/integration/test_publishing_iam.py`. Depends: T025, T043. Covers: FR-007, FR-015, FR-016.
-- [ ] T046 Implement `publishing-iam.yaml` with nonsecret role and provider outputs; reused account providers are never duplicated, mutated or deleted implicitly. Files: `infra/lambda/publishing-iam.yaml`. Depends: T045, T006. Covers: FR-007, FR-015, FR-016.
+- [X] T045 [P] Add service publishing-IAM tests for exact repository and environment trust, selected ECR actions, and no deployment, identity or billing permissions or static keys. Files: `tests/integration/test_publishing_iam.py`. Depends: T025, T043. Covers: FR-007, FR-015, FR-016.
+- [X] T046 Implement `publishing-iam.yaml` with nonsecret role and provider outputs; reused account providers are never duplicated, mutated or deleted implicitly. Files: `infra/lambda/publishing-iam.yaml`. Depends: T045, T006. Covers: FR-007, FR-015, FR-016.
 - [ ] T047 [P] Add boundary tests proving no identity, Stripe or DynamoDB runtime dependency or grant, and that bypass integrations are rejected by exact function identity, not name prefix. Files: `tests/integration/test_deployment_contract.py`, `tests/integration/test_lambda_verifier.py`, `tests/unit/test_lambda_server.py`. Depends: T039, T043. Covers: FR-005, FR-006, FR-011, FR-012, FR-015, FR-017, SC-008.
 - [ ] T048 Reconcile service preflight and read-only verification with optional spec-002 gateway outputs, keeping the v1 16-stage report and missing-live `not_run` behavior. Files: `scripts/verify_lambda.py`. Depends: T047, T046. Covers: FR-005, FR-011, FR-013, FR-014, FR-016, FR-017, SC-007, SC-008.
 - [ ] T049 Reconcile the service docs, quickstart and README with the publishing IAM bootstrap and spec-002 interface outputs, keeping the GHCR workflow unchanged. Files: `docs/lambda-deployment.md`, `specs/001-add-lambda-deployment/quickstart.md`, `README.md`. Depends: T048, T046. Covers: FR-007, FR-009, FR-010, FR-015–FR-017, SC-001, SC-008.

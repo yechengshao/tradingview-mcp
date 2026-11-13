@@ -62,3 +62,7 @@ Current total: **58 tasks, 44 checked, 14 unchecked**. Existing REST/publishing/
 ## Publishing trust fix: immutable subject claims (2026-11-13)
 
 The repository uses immutable OIDC subject claims, so GitHub's `sub` is `repo:yechengshao@7886247/tradingview-mcp@1423980237:environment:lambda-publication`, not the name-based form. `publishing-iam.yaml` now takes `GithubSubjectPrefix` with that value, and the test asserts it. The stack must be updated to apply the corrected trust policy; the retained OIDC provider is unchanged.
+
+## T045–T046 accepted (2026-11-13)
+
+Publishing IAM is checked: the `tradingview-mcp-publishing` stack deployed in account 503098479806, region ca-central-1, with the immutable subject claim. The "Publish Lambda image to ECR" run succeeded and pushed `tradingview-mcp-lambda:run-43365692167-1` (digest `sha256:78599d01e49636c17ac82bbb7f27eb651225ca45bc4c2e944d2ce7c2a72d4c35`). Caveats: the stack was created and updated with root credentials; the GitHub thumbprints are not yet verified against GitHub's current documentation; T040 and T044 remain open until a real deploy and the adapter test (T051) pass.
