@@ -70,3 +70,7 @@ Publishing IAM is checked: the `tradingview-mcp-publishing` stack deployed in ac
 ## Adapter test in CI (2026-11-13)
 
 `tests/integration/test_lambda_adapter_rie.py` drives the built image through the Lambda Runtime Interface Emulator (arm64) with the REST-v1 fixtures and checks 200/405/421/403/404 and the health body. `test-docker.yml` downloads the emulator and runs it on relevant changes. It skips locally without Docker, and fails in CI if prerequisites are missing. Not yet run on GitHub; the emulator's handling of the Lambda Web Adapter extension is the unverified part. T051 stays unchecked until this passes.
+
+## T051 accepted (2026-11-13)
+
+`Lambda image Docker tests` run #5 (push `62a0b1a`, `main`) passed on GitHub's ARM runner. It built the image, ran the container tests, and drove the REST-v1 fixtures through the arm64 Lambda Runtime Interface Emulator, checking 200, 405, 421, 403, 404 and the exact health body. Run #4 had failed on an `Allow` header assertion in the test itself, now corrected. Caveat: the emulator is a local stand-in for the Lambda service, so real API Gateway and Lambda behaviour remains for T040 and T055.

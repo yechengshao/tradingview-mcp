@@ -4,7 +4,7 @@ description: "Dependency-ordered implementation tasks for Add AWS Lambda Deploym
 
 # Tasks: Add AWS Lambda Deployment
 
-**Status and history**: [status.md](status.md). Task IDs and checkbox states are authoritative here: 46 of 58 checked. Original T001–T044 keep their completion states; T045–T055 and T058 are service follow-up; access and billing work is tracked in [spec 002](../../../mcp-auth-subscriptions/specs/002-authentication-api-access/tasks.md) and [spec 003](../../../mcp-auth-subscriptions/specs/003-billing-subscriptions/tasks.md).
+**Status and history**: [status.md](status.md). Task IDs and checkbox states are authoritative here: 47 of 58 checked. Original T001–T044 keep their completion states; T045–T055 and T058 are service follow-up; access and billing work is tracked in [spec 002](../../../mcp-auth-subscriptions/specs/002-authentication-api-access/tasks.md) and [spec 003](../../../mcp-auth-subscriptions/specs/003-billing-subscriptions/tasks.md).
 
 **Inputs**: [spec](spec.md), [plan](plan.md), [research](research.md), [data model](data-model.md), [contracts](contracts/deployment.md), [quickstart](quickstart.md).
 **Format**: `- [ ] T### [P] [US#] Task. Files: paths. Depends: IDs. Covers: requirements.` `[P]` marks independent files, not permission to edit shared files concurrently.
@@ -86,7 +86,7 @@ description: "Dependency-ordered implementation tasks for Add AWS Lambda Deploym
 
 ## Phase 9: REST service transport and evidence
 
-- [ ] T051 Add packaged pinned-adapter REST-v1 event tests for stage and path handling, headers, query, base64 bodies, exact host and finite MCP behavior, keeping current HTTP tests. Files: `tests/integration/test_lambda_rest_transport.py`. Depends: T019, T043. Covers: FR-002–FR-006, FR-008, FR-010, FR-012, FR-017, SC-002, SC-005, SC-006, SC-008.
+- [X] T051 Add packaged pinned-adapter REST-v1 event tests for stage and path handling, headers, query, base64 bodies, exact host and finite MCP behavior, keeping current HTTP tests. Files: `tests/integration/test_lambda_rest_transport.py`. Depends: T019, T043. Covers: FR-002–FR-006, FR-008, FR-010, FR-012, FR-017, SC-002, SC-005, SC-006, SC-008.
 - [ ] T052 Test, then implement `runtime-rest.yaml` with the function, log role, native environment, live alias and the outputs spec 002 needs; it creates no gateway method, integration or permission. Files: `infra/lambda/runtime-rest.yaml`, `tests/integration/test_deployment_contract.py`, `src/tradingview_mcp/lambda_server.py` only if T051 requires it. Depends: T051. Covers: FR-001, FR-002, FR-004, FR-005, FR-008, FR-010, FR-015, FR-017, SC-001, SC-005, SC-008.
 - [ ] T053 Test, then add the explicit REST report-v2 schema and profile selection, rejecting cross-profile reports while keeping v1 unchanged. Files: `specs/001-add-lambda-deployment/contracts/verification-report-v2.schema.json`, `scripts/verify_lambda.py`, `tests/unit/test_verification_report.py`, `tests/integration/test_lambda_verifier.py`. Depends: T048, T052. Covers: FR-005, FR-011, FR-013–FR-015, FR-017, SC-003, SC-004, SC-007, SC-008.
 - [ ] T054 Update service docs, local CI and REST examples for the service-only stack, gateway-owned attachments, distinct old and new endpoints, and scoped cutover and rollback. Files: `docs/lambda-deployment.md`, `specs/001-add-lambda-deployment/quickstart.md`, `.github/workflows/test-lambda.yml`, `tests/integration/`. Depends: T049, T050, T051, T052, T053. Covers: FR-006, FR-007, FR-009, FR-010, FR-012–FR-015, FR-017, SC-001, SC-006–SC-008.
