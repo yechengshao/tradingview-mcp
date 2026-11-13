@@ -32,6 +32,12 @@ Follow-up TODOs: none.
   criteria, or necessary implementation details.
 - Revisions MUST preserve existing requirement/task IDs and completion states.
 
+### Infrastructure as Code
+
+- Every AWS resource MUST be defined in a CloudFormation template in the repository and created or changed only by deploying that template. Resources MUST NOT be created by hand in the console or by ad hoc CLI commands.
+- Deployments MUST use reviewed template versions and MUST NOT use root account credentials.
+- Account-level bootstrap (for example, enabling billing or SSO) is the only exception and MUST be documented.
+
 ## Documentation Scope
 
 Apply these rules to future generated or revised specifications, plans, tasks, and
@@ -54,7 +60,8 @@ patch version for clarifications. Reviews MUST check compliance with this consti
 
 ## Amendment Record
 
+- **1.2.0 — 2026-11-13**: Added Infrastructure as Code: AWS resources only from CloudFormation templates, no root credentials, documented bootstrap exceptions. Rationale: the service publishing role and ECR repository must be reproducible and reviewable.
 - **1.1.0 — 2026-11-10**: Added soft length budgets for task lines (under 60 words) and `tasks.md` (under 2,500 words), with justification required to exceed them. Rationale: the service task list had grown to paragraphs of acceptance detail, obscuring task status.
 - **1.0.1 — 2026-11-10**: Clarified that `tasks.md` holds only task lines and checkbox state, with progress evidence in `docs/` or a status file. Rationale: task files had accumulated dated evidence logs, which made counts and status drift out of sync.
 
-**Version**: 1.1.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-10
+**Version**: 1.2.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-13
