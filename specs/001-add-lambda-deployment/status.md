@@ -109,3 +109,15 @@ Stack `tradingview-mcp-coldstart` (image `sha256:ec5f2ac8…a002`, commit `6da1a
 | create_app_total | 8,859.9 |
 
 About 99% of init is the `tradingview_mcp.server` import, which is the eager pandas/numpy load. Locally that import takes about 0.7 s, so the Lambda container is roughly 12 times slower at this step. Memory is the variable to test next; the earlier 2048 MB run was not phase-timed. Do not switch to a lazy import without re-checking the stdio deadlock in issue #91.
+
+## Memory test for startup import (2026-11-13)
+
+Stack `tradingview-mcp-mem2048` (same image and commit, `MemorySize` 2048) ran one cold invocation, then was deleted. Phase timings (`startup.phase`, ms):
+
+| Phase | 1024 MB | 2048 MB |
+|---|---|---|
+| import_observability | 5.3 | 13.4 |
+| import_server | 8,853.9 | 4,073.2 |
+| create_app_total | 8,859.9 | 4,087.5 |
+
+Doubling memory halved the server import, which points to CPU-bound import work. The 2048 MB init fits under the 10 s limit with headroom. Not yet measured: the 3008 MB setting and the full `INIT_REPORT` for this run. Pending a decision on the memory setting.
