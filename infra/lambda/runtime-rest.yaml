@@ -38,7 +38,7 @@
     },
     "MemorySize": {
       "Type": "Number",
-      "Default": 1024,
+      "Default": 2048,
       "MinValue": 128,
       "MaxValue": 10240
     },

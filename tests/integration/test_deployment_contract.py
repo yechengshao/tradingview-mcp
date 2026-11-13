@@ -138,3 +138,11 @@ def test_rest_runtime_reserved_concurrency_is_optional_for_low_quota_accounts():
     assert 'HasReservedConcurrency' in t['Conditions']
     f = t['Resources']['Function']['Properties']
     assert f['ReservedConcurrentExecutions'] == {'Fn::If': ['HasReservedConcurrency', {'Ref': 'ReservedConcurrency'}, {'Ref': 'AWS::NoValue'}]}
+
+
+def test_rest_runtime_defaults_to_memory_that_fits_lambda_init_window():
+    # At 1024 MB the server import alone took ~8.9 s of the 10 s init limit; 2048 MB halves it.
+    t = template('runtime-rest')
+    param = t['Parameters']['MemorySize']
+    assert param['Default'] >= 2048
+    assert param['MinValue'] <= param['Default'] <= param['MaxValue']
