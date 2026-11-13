@@ -78,3 +78,11 @@ Publishing IAM is checked: the `tradingview-mcp-publishing` stack deployed in ac
 ## Reserved concurrency optional (2026-11-13)
 
 The function-only test failed to create the Lambda because this account's unreserved concurrency minimum (10) rules out the template's reservation of 5. `runtime-rest.yaml` now defaults `ReservedConcurrency` to 0, which omits the reservation. Tests were written first. A positive value is for accounts whose Lambda quota has been raised.
+
+## Function-only Lambda test (2026-11-13)
+
+Stack `tradingview-mcp-function-test` (`runtime-rest.yaml`, image `sha256:78599d01…d4c35`, ca-central-1) was created and then deleted. The `live` alias invoked with the REST-v1 `initialize` fixture returned HTTP 200 with the MCP server info, and a warm invocation took 4.8 ms. This is the first run on real Lambda, but no API Gateway is involved, so T040/T055 remain open.
+
+Two findings:
+- The first (cold) invocation's init reported `Status: timeout` after 9,999 ms, with the app not ready until more than 14 s. The request still completed, but Lambda's init window is 10 s, so cold starts need investigating (likely heavy imports such as pandas, plus catalogue loading) before production.
+- The first attempt failed on account concurrency (reserved 5 vs unreserved minimum 10); `ReservedConcurrency` now defaults to 0.
