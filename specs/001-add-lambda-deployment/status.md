@@ -66,3 +66,7 @@ The repository uses immutable OIDC subject claims, so GitHub's `sub` is `repo:ye
 ## T045–T046 accepted (2026-11-13)
 
 Publishing IAM is checked: the `tradingview-mcp-publishing` stack deployed in account 503098479806, region ca-central-1, with the immutable subject claim. The "Publish Lambda image to ECR" run succeeded and pushed `tradingview-mcp-lambda:run-43365692167-1` (digest `sha256:78599d01e49636c17ac82bbb7f27eb651225ca45bc4c2e944d2ce7c2a72d4c35`). Caveats: the stack was created and updated with root credentials; the GitHub thumbprints are not yet verified against GitHub's current documentation; T040 and T044 remain open until a real deploy and the adapter test (T051) pass.
+
+## Adapter test in CI (2026-11-13)
+
+`tests/integration/test_lambda_adapter_rie.py` drives the built image through the Lambda Runtime Interface Emulator (arm64) with the REST-v1 fixtures and checks 200/405/421/403/404 and the health body. `test-docker.yml` downloads the emulator and runs it on relevant changes. It skips locally without Docker, and fails in CI if prerequisites are missing. Not yet run on GitHub; the emulator's handling of the Lambda Web Adapter extension is the unverified part. T051 stays unchecked until this passes.
