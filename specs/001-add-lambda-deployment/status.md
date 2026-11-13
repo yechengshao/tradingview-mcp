@@ -86,3 +86,11 @@ Stack `tradingview-mcp-function-test` (`runtime-rest.yaml`, image `sha256:78599d
 Two findings:
 - The first (cold) invocation's init reported `Status: timeout` after 9,999 ms, with the app not ready until more than 14 s. The request still completed, but Lambda's init window is 10 s, so cold starts need investigating (likely heavy imports such as pandas, plus catalogue loading) before production.
 - The first attempt failed on account concurrency (reserved 5 vs unreserved minimum 10); `ReservedConcurrency` now defaults to 0.
+
+## Cold-start investigation (2026-11-13)
+
+- Local import timing: `tradingview_mcp.server` imports pandas eagerly (intentional; the comment in `server.py` records a stdio deadlock, issue #91, if pandas is imported lazily). Locally the full `create_app` path takes about one second.
+- On Lambda, the first invocation at 1024 MB reported `Init Duration` 9,999 ms (`Status: timeout`), and the app wasn't ready until more than 14 s.
+- The same cold start at 2048 MB still reported `INIT_REPORT Init Duration: 10000.28 ms, Status: timeout`. More CPU alone does not fix it.
+- Not yet measured: time spent in image pull, Python startup, `create_app`, or uvicorn binding. The next step is sanitized startup-phase timing logs inside the function, then a cold-start measurement from the same image.
+- The test stacks `tradingview-mcp-function-test` and `tradingview-mcp-coldstart` were deleted.
