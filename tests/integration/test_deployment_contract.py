@@ -146,3 +146,61 @@ def test_rest_runtime_defaults_to_memory_that_fits_lambda_init_window():
     param = t['Parameters']['MemorySize']
     assert param['Default'] >= 2048
     assert param['MinValue'] <= param['Default'] <= param['MaxValue']
+
+
+# T047/T050 audit: the MCP service must not reach any AWS, billing or identity service (spec 001 boundary).
+FORBIDDEN_IMPORTS = {'boto3', 'botocore', 'aiobotocore', 'awscrt', 'stripe', 'jwt', 'jose', 'authlib', 'cognito_idp'}
+ALLOWED_RUNTIME_ACTIONS = {'logs:CreateLogStream', 'logs:PutLogEvents', 'xray:PutTraceSegments', 'xray:PutTelemetryRecords'}
+
+
+def _collect_actions(node, acc):
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == 'Action':
+                acc |= set(value if isinstance(value, list) else [value])
+            else:
+                _collect_actions(value, acc)
+    elif isinstance(node, list):
+        for item in node:
+            _collect_actions(item, acc)
+    return acc
+
+
+def test_service_source_imports_no_aws_billing_or_identity_sdk():
+    import ast
+    root = Path(__file__).resolve().parents[2] / 'src' / 'tradingview_mcp'
+    offenders = []
+    for path in root.rglob('*.py'):
+        for node in ast.walk(ast.parse(path.read_text())):
+            names = []
+            if isinstance(node, ast.Import):
+                names = [a.name for a in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                names = [node.module]
+            for name in names:
+                if name.split('.')[0] in FORBIDDEN_IMPORTS:
+                    offenders.append(f'{path.name}:{name}')
+    assert offenders == []
+
+
+def test_lambda_image_installs_no_deployment_or_extra_dependency_groups():
+    dockerfile = (Path(__file__).resolve().parents[2] / 'Dockerfile.lambda').read_text()
+    assert '--no-dev' in dockerfile
+    for flag in ('--group', '--all-groups', '--extra', '--all-extras', '--with '):
+        assert flag not in dockerfile
+
+
+def test_runtime_roles_grant_only_logs_and_optional_trace_export():
+    for name in ('runtime.yaml', 'runtime-rest.yaml'):
+        t = json.loads((ROOT / 'infra/lambda' / name).read_text())
+        roles = {k: v for k, v in t['Resources'].items() if v['Type'] == 'AWS::IAM::Role'}
+        granted = set()
+        for role in roles.values():
+            granted |= _collect_actions(role['Properties'].get('Policies', []), set())
+        assert granted <= ALLOWED_RUNTIME_ACTIONS, name
+
+
+def test_rest_runtime_has_no_function_url_or_invoke_permission():
+    t = json.loads((ROOT / 'infra/lambda/runtime-rest.yaml').read_text())
+    types = {v['Type'] for v in t['Resources'].values()}
+    assert not types & {'AWS::Lambda::Url', 'AWS::Lambda::Permission', 'AWS::ApiGateway::RestApi', 'AWS::ApiGateway::Method'}

@@ -2,7 +2,7 @@
 
 This guide deploys the existing **HTTP API v2** profile: an ARM64 container behind a
 protected gateway, using a stable `live` alias. The planned REST/usage-plan profile
-requires a separate [migration](../specs/001-add-lambda-deployment/contracts/rest-migration.md).
+requires a separate [migration](../specs/001-add-lambda-deployment/contracts/rest-migration.md). The REST profile is documented in [REST service-only profile](#rest-service-only-profile).
 Authentication and billing belong to the separate
 [auth/subscription project](../../mcp-auth-subscriptions/README.md).
 
@@ -187,3 +187,27 @@ Application monitoring adds no dependency. CloudWatch receives stdlib JSON start
 Set TracingMode=Active to enable AWS-native Lambda X-Ray (default PassThrough), ObservabilityEnvironment=development|test|production and finite LogRetentionDays (legacy default 14; choose 3 in development). The template grants conditional native trace-write permissions and scoped log writes. No collector, tracing SDK, app sampler, exporter, custom segment or extra monitoring service is used.
 
 Native X-Ray provides supported service/invocation-level tracing, not custom tool/provider spans. Use sanitized CloudWatch failure timings for application detail and native Lambda error/duration/throttling metrics. AWS controls Lambda sampling; spec 002 owns the future REST-stage 1% rule. The legacy HTTP API has no REST-stage X-Ray integration. Real ingestion, native graph/header linkage, sampling and ARM64 execution remain T058 acceptance; no monitoring deployment is implied. See the [contract](../specs/001-add-lambda-deployment/contracts/observability.md).
+
+## REST service-only profile
+
+Status: template and report work are local; no REST stack is deployed. The REST API, its stage, methods, authorizer and invoke permissions belong to the access stack (spec 002, `infra/access/gateway.yaml`, not yet written).
+
+**Template:** `infra/lambda/runtime-rest.yaml` creates the function, its log group, execution role, published version and `live` alias. It creates no API Gateway resources, permissions or Function URL.
+
+**Parameters:** `RestApiId` is the base REST API ID from access; the function's public host is `<RestApiId>.execute-api.<region>.amazonaws.com`. `ReservedConcurrency` defaults to 0 (no reservation). `MemorySize` defaults to 2048 MB, which fits the 10-second init window (see `status.md`). Release inputs are `ImageUri` (digest-pinned), `SourceCommit`, `LockSha256` and `DeploymentRevision`.
+
+**Outputs for access:** `FunctionArn`, `AliasArn`, `PublishedVersion`, `ActiveVersion`, `ImageUri`, `SourceCommit`, `LockSha256`, `DeploymentRevision` and `LogGroupName`. Access uses the alias ARN to create the invoke permissions.
+
+**Endpoints (distinct):**
+- Legacy HTTP: `https://<HttpApiId>.execute-api.<region>.amazonaws.com/mcp` (`$default` stage, payload v2.0).
+- REST: `https://<RestApiId>.execute-api.<region>.amazonaws.com/<stage>/mcp` (named stage, Lambda proxy v1 event). Clients get a new URL and grant audience through access; old grants are not rewritten.
+
+**Cutover and rollback:** follow [rest-migration.md](../specs/001-add-lambda-deployment/contracts/rest-migration.md). Keep the HTTP endpoint available or secured until a separately scoped cutover; never leave it as an unguarded paid bypass. Roll back by setting `RollbackVersion` on the same function. Do not delete the HTTP API or REST API automatically, and do not reset identity.
+
+**Checks:**
+```sh
+uv run --locked --group deployment cfn-lint infra/lambda/runtime-rest.yaml
+uv run python scripts/verify_lambda.py local --profile rest --report "$EVIDENCE_DIR/local-rest.json"
+```
+The `local --profile rest` run writes a report v2 (`profile: rest`). Live REST checks are not implemented yet (they depend on spec 002 outputs and task T048), so a REST report cannot yet show deployment success. Reports from one profile are rejected as evidence for the other.
+

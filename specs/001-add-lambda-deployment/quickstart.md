@@ -1,5 +1,7 @@
 # Quickstart: MCP Service Deployment
 
+**REST steps**: see [REST service-only profile](../../../docs/lambda-deployment.md#rest-service-only-profile); this quickstart still describes the legacy HTTP profile.
+
 **Profile revision — 2026-11-03**: The user selected REST API with native usage plans. The [REST service handoff](contracts/rest-migration.md) governs the new target and supersedes any HTTP-only exclusion below for future work. Existing HTTP API v2/`$default`/payload2.0 routes, commands and report-v1 details below describe the delivered **legacy HTTP profile**, not an implemented REST deployment. New service-only runtime/report-v2 work is pending; spec 002 owns all new REST attachments and invoke permissions.
 
 **Updated**: 2026-11-03. Spec 001 is service-only: runtime, ECR/service image publication, native provider configuration and service publishing IAM. Identity/gateway/subscription authorization is owned by [spec 002](../../../mcp-auth-subscriptions/specs/002-authentication-api-access/spec.md); Stripe billing in a separate Lambda/DynamoDB is owned by [spec 003](../../../mcp-auth-subscriptions/specs/003-billing-subscriptions/spec.md).

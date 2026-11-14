@@ -146,3 +146,10 @@ The `tradingview-mcp-publishing` stack was updated to delete-policy `Delete`, de
 ## CLI profile flag (T053 partial, 2026-11-14)
 
 `scripts/verify_lambda.py local --profile {http,rest}` selects the report version. The default stays `http` (report v1, unchanged). `rest` writes report v2 with `profile: rest`. Unknown profiles exit with code 3. Tests stub the child test runs and check the profile wiring only. Still open for T053: live REST checks (depends on T048) and REST combine and cold-start joins.
+
+## Boundary audit and REST docs (T047/T050/T054 work, 2026-11-14)
+
+- Audit tests (`tests/integration/test_deployment_contract.py`): the source has no AWS, billing or identity SDK imports (28 files scanned); the Lambda image uses `--no-dev` with no extra dependency groups; both runtime templates grant only log writes and optional X-Ray export; the REST runtime has no Function URL, permission, or gateway resources. CI runs these tests.
+- `test-lambda.yml` now also runs `test_publishing_iam.py`.
+- `docs/lambda-deployment.md` gained a REST service-only profile section (template, parameters, outputs, distinct endpoints, cutover and rollback, checks). `quickstart.md` links to it.
+- Checkboxes for T047, T050 and T054 stay unchecked until T048/T053 (live REST) are complete.
