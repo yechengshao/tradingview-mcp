@@ -204,3 +204,11 @@ def test_rest_runtime_has_no_function_url_or_invoke_permission():
     t = json.loads((ROOT / 'infra/lambda/runtime-rest.yaml').read_text())
     types = {v['Type'] for v in t['Resources'].values()}
     assert not types & {'AWS::Lambda::Url', 'AWS::Lambda::Permission', 'AWS::ApiGateway::RestApi', 'AWS::ApiGateway::Method'}
+
+
+def test_rest_runtime_takes_access_outputs_as_inputs_not_imports():
+    # Cross-stack wiring stays acyclic: the service receives only RestApiId and never imports access outputs.
+    text = (ROOT / 'infra/lambda/runtime-rest.yaml').read_text()
+    assert 'ImportValue' not in text
+    for name in ('AccessRoleArn', 'AccessFunctionArn', 'AuthorizerFunctionArn', 'AccessTable'):
+        assert name not in text, name
