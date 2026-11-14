@@ -135,3 +135,10 @@ The 2048 MB default fits the 10 s init window with about 6 s of headroom. The ne
 ## Publishing OIDC provider recreated without pinned thumbprints (2026-11-14)
 
 The `tradingview-mcp-publishing` stack was updated to delete-policy `Delete`, deleted, and recreated from `infra/lambda/publishing-iam.yaml` without `ThumbprintList`. The in-place update failed because IAM rejects a null thumbprint list, so the provider was recreated. The publisher role name and ARN are unchanged (`arn:aws:iam::503098479806:role/tradingview-mcp-publishing-publisher`), so the `AWS_ROLE_TO_ASSUME` repo variable needs no change. IAM populated one thumbprint itself (`ab9d0263244dd0326eb67015705a667e79cfe998`). The template keeps `Retain`. A manual publish run on `main` (`6da1a75`, run 43564051790) succeeded with the recreated role and pushed `run-43564051790-1` to ECR.
+
+## REST report v2 slice (T053 partial, 2026-11-14)
+
+- `contracts/verification-report-v2.schema.json` is added. It keeps every v1 stage and rule, requires `schema_version: 2` and `profile: rest`, and replaces the HTTP gateway definition with REST provenance (named stage, deployment, method IDs, REQUEST authorizer, AWS_PROXY integration, payload v1, 29000 ms).
+- `scripts/verify_lambda.py` gains `new_report(profile=...)`, `require_profile()`, and version-based schema selection in `validate()`. Default reports are unchanged v1 HTTP reports; v1 schema bytes are unchanged (hash-tested).
+- `tests/unit/test_verification_report.py`: 13 tests pass. Unit suite plus `test_lambda_verifier.py`: 509 pass.
+- Not done: live REST preflight/read-only checks against the spec 002 gateway (depends on T048), REST cold-start/lifecycle joins, and an integration test for REST profile selection in the CLI.

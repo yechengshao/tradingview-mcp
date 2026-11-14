@@ -39,8 +39,14 @@ def git(*args):
     return subprocess.check_output(['git', *args], cwd=ROOT, text=True).strip()
 
 
-def new_report(mode, expected_image_uri=None):
-    return {'schema_version':1, 'mode':mode, 'run_id':str(uuid.uuid4()),
+PROFILES = {'http': 1, 'rest': 2}
+SCHEMA_V2_PATH = ROOT / 'specs/001-add-lambda-deployment/contracts/verification-report-v2.schema.json'
+
+
+def new_report(mode, expected_image_uri=None, profile='http'):
+    if profile not in PROFILES:
+        raise ConfigurationError('Unsupported verification profile')
+    report = {'schema_version':PROFILES[profile], 'mode':mode, 'run_id':str(uuid.uuid4()),
         'started_at':now(), 'completed_at':now(),
         'release':{'source_commit':git('rev-parse','HEAD'),
             'source_dirty':bool(git('status','--porcelain')), 'dependency_lock_sha256':digest(ROOT/'uv.lock'),
@@ -52,6 +58,16 @@ def new_report(mode, expected_image_uri=None):
         'counts':dict.fromkeys(('attempted_interactions','passed_interactions','concurrent_clients','passed_health_checks','evidenced_fresh_starts'),0),
         'cold_start_evidence':[], 'live_market_probe':{'status':'not_run','reason':'Optional market probe not attempted','evidence':[]},
         'full_deployment_success':False,'authorization_evidence':None}
+    if profile == 'rest':
+        report['profile'] = 'rest'
+    return report
+
+
+def require_profile(report, profile):
+    """Reject evidence produced under the other gateway profile (rest-migration.md)."""
+    actual = 'rest' if report.get('schema_version') == PROFILES['rest'] else 'http'
+    if profile not in PROFILES or actual != profile:
+        raise ConfigurationError('Report profile %s cannot be used as %s evidence' % (actual, profile))
 
 
 def stage(report, name, status, reason, evidence=None, duration_ms=0):
@@ -76,7 +92,13 @@ def write_json(path, obj):
 
 def validate(report):
     from jsonschema import Draft202012Validator, FormatChecker
-    schema=json.loads(SCHEMA_PATH.read_text())
+    version = report.get('schema_version')
+    if version == PROFILES['rest']:
+        schema = json.loads(SCHEMA_V2_PATH.read_text())
+    elif version == PROFILES['http']:
+        schema = json.loads(SCHEMA_PATH.read_text())
+    else:
+        raise ConfigurationError('Unsupported report schema_version')
     Draft202012Validator(schema,format_checker=FormatChecker()).validate(report)
     if instant(report['completed_at']) < instant(report['started_at']):
         raise ConfigurationError('invalid report observation window')
