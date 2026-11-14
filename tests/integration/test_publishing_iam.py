@@ -58,3 +58,9 @@ def test_outputs_are_nonsecret_identifiers_only():
     assert set(t['Outputs']) == {'PublisherRoleArn', 'GitHubOidcProviderArn'}
     text = json.dumps(t['Outputs'])
     assert 'Secret' not in text and 'Password' not in text
+
+
+def test_github_oidc_provider_does_not_pin_unverified_thumbprints():
+    # AWS validates GitHub's certificate chain itself; pinned values could block publishing if wrong.
+    provider = [v for v in template()['Resources'].values() if v['Type'] == 'AWS::IAM::OIDCProvider'][0]
+    assert 'ThumbprintList' not in provider['Properties']

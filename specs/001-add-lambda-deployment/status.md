@@ -131,3 +131,7 @@ Stack `tradingview-mcp-default2048` (template default `MemorySize` 2048, image `
 - Warm invocation duration is not measured here; a single cold call only.
 
 The 2048 MB default fits the 10 s init window with about 6 s of headroom. The next real deploy must still confirm the init status on the production alias.
+
+## Publishing OIDC provider recreated without pinned thumbprints (2026-11-14)
+
+The `tradingview-mcp-publishing` stack was updated to delete-policy `Delete`, deleted, and recreated from `infra/lambda/publishing-iam.yaml` without `ThumbprintList`. The in-place update failed because IAM rejects a null thumbprint list, so the provider was recreated. The publisher role name and ARN are unchanged (`arn:aws:iam::503098479806:role/tradingview-mcp-publishing-publisher`), so the `AWS_ROLE_TO_ASSUME` repo variable needs no change. IAM populated one thumbprint itself (`ab9d0263244dd0326eb67015705a667e79cfe998`). The template keeps `Retain`. Not yet verified: a live publish run with the recreated role.
