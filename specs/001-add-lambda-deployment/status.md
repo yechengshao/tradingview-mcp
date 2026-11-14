@@ -121,3 +121,13 @@ Stack `tradingview-mcp-mem2048` (same image and commit, `MemorySize` 2048) ran o
 | create_app_total | 8,859.9 | 4,087.5 |
 
 Doubling memory halved the server import, which points to CPU-bound import work. The 2048 MB init fits under the 10 s limit with headroom. Not yet measured: the 3008 MB setting and the full `INIT_REPORT` for this run. Pending a decision on the memory setting.
+
+## Default 2048 MB cold-start check (2026-11-14)
+
+Stack `tradingview-mcp-default2048` (template default `MemorySize` 2048, image `sha256:ec5f2ac8…a002`, commit `6da1a75`, ca-central-1) ran one cold invocation on the `live` alias with a REST-v1 health event, then was deleted.
+
+- `INIT_REPORT`: `Init Duration: 3785.34 ms`, no timeout status (the 1024 MB run reported `Status: timeout` at 9,999.78 ms).
+- Phases (ms): validate_environment 0.29, import_observability 10.5, import_server 3,030.2, configure_mcp 0.17, build_http_app 0.15, create_app_total 3,041.5.
+- Warm invocation duration is not measured here; a single cold call only.
+
+The 2048 MB default fits the 10 s init window with about 6 s of headroom. The next real deploy must still confirm the init status on the production alias.
