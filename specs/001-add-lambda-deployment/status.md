@@ -142,3 +142,7 @@ The `tradingview-mcp-publishing` stack was updated to delete-policy `Delete`, de
 - `scripts/verify_lambda.py` gains `new_report(profile=...)`, `require_profile()`, and version-based schema selection in `validate()`. Default reports are unchanged v1 HTTP reports; v1 schema bytes are unchanged (hash-tested).
 - `tests/unit/test_verification_report.py`: 13 tests pass. Unit suite plus `test_lambda_verifier.py`: 509 pass.
 - Not done: live REST preflight/read-only checks against the spec 002 gateway (depends on T048), REST cold-start/lifecycle joins, and an integration test for REST profile selection in the CLI.
+
+## CLI profile flag (T053 partial, 2026-11-14)
+
+`scripts/verify_lambda.py local --profile {http,rest}` selects the report version. The default stays `http` (report v1, unchanged). `rest` writes report v2 with `profile: rest`. Unknown profiles exit with code 3. Tests stub the child test runs and check the profile wiring only. Still open for T053: live REST checks (depends on T048) and REST combine and cold-start joins.

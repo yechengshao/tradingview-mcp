@@ -195,3 +195,25 @@ def test_resolve_target_reads_real_shapes_and_keeps_provider_values_private(fore
         assert target['gateway']['api_id']=='abc123'
         assert observation['_provider_values'][-1]=='synthetic-private-provider-value'
         assert 'synthetic-private-provider-value' not in json.dumps(observation['safe_configuration'])
+
+
+def test_local_cli_profile_flag_selects_report_version(tmp_path, monkeypatch):
+    v = verifier()
+    # Stub the slow child test runs; this checks profile wiring, not test outcomes.
+    monkeypatch.setattr(v, 'run_tests', lambda *a, **k: ('not_run', [], 0))
+    rest = tmp_path / 'rest.json'
+    assert v.main(['local', '--report', str(rest), '--profile', 'rest']) in (0, 2)
+    import json
+    report = json.loads(rest.read_text())
+    assert report['schema_version'] == 2 and report['profile'] == 'rest'
+    http = tmp_path / 'http.json'
+    v.main(['local', '--report', str(http)])
+    report = json.loads(http.read_text())
+    assert report['schema_version'] == 1 and 'profile' not in report
+
+
+def test_local_cli_rejects_unknown_profile(tmp_path):
+    v = verifier()
+    with pytest.raises(SystemExit) as exc:
+        v.main(['local', '--report', str(tmp_path / 'x.json'), '--profile', 'websocket'])
+    assert exc.value.code == 3

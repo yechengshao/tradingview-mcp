@@ -294,7 +294,7 @@ def run_tests(report, selectors, directory, label, env=None):
 
 
 def local_mode(args):
-    report=new_report('local',args.expected_image_uri)
+    report=new_report('local',args.expected_image_uri,profile=args.profile)
     directory=Path(args.report).resolve().parent/(report['run_id']+'-evidence')
     # Source checks cannot establish anything about an untested image.
     status,refs,ms=run_tests(report,['tests/unit','tests/integration/test_release_workflow_contract.py'],directory,'unit-and-workflow')
@@ -887,6 +887,7 @@ def main(argv=None):
     local=subs.add_parser('local')
     local.add_argument('--baseline-image');local.add_argument('--lambda-image');local.add_argument('--expected-image-uri')
     local.add_argument('--report',required=True)
+    local.add_argument('--profile',choices=sorted(PROFILES),default='http',help='Gateway profile; rest writes report v2.')
     live=subs.add_parser('live')
     live.add_argument('--region',required=True);live.add_argument('--stack',required=True)
     live.add_argument('--additional-stack',action='append',default=[])
