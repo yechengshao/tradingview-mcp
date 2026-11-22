@@ -64,3 +64,13 @@ def test_github_oidc_provider_does_not_pin_unverified_thumbprints():
     # AWS validates GitHub's certificate chain itself; pinned values could block publishing if wrong.
     provider = [v for v in template()['Resources'].values() if v['Type'] == 'AWS::IAM::OIDCProvider'][0]
     assert 'ThumbprintList' not in provider['Properties']
+
+
+def test_publishing_params_file_supplies_the_immutable_subject_prefix():
+    import json as _json
+    import re
+    params = _json.loads((ROOT / 'infra/lambda/publishing-iam.params.json').read_text())
+    prefix = next(p['ParameterValue'] for p in params if p['ParameterKey'] == 'GithubSubjectPrefix')
+    pattern = template()['Parameters']['GithubSubjectPrefix']['AllowedPattern']
+    assert re.fullmatch(pattern, prefix)
+    assert prefix == 'repo:yechengshao@7886247/tradingview-mcp@1423980237'
