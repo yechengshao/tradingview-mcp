@@ -82,4 +82,6 @@ def test_boundary_runs_refresh_only_for_http_requests():
 
     with TestClient(LambdaBoundary(app, before_http=lambda: calls.append(1))) as client:
         assert client.get('/health').status_code == 200
+        assert calls == []
+        assert client.post('/mcp/', json={}).status_code == 200
     assert calls == [1]

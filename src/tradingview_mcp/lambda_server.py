@@ -70,7 +70,7 @@ class LambdaBoundary:
     async def __call__(self,scope,receive,send):
         if scope['type']!='http':
             return await self.app(scope,receive,send)
-        if self.before_http is not None:
+        if self.before_http is not None and scope['path']!='/health':
             self.before_http()
         headers=scope.get('headers',[])
         status=None
@@ -112,9 +112,9 @@ def create_app():
     # the native MARKETAUX_API_TOKEN variable stays authoritative (local and Docker runs).
     from tradingview_mcp.lambda_secrets import MarketauxToken, parameter_name_from
     token_name = parameter_name_from(os.environ)
+    # Not read here: initialization (including the readiness probe) stays within Lambda's init
+    # budget. The first MCP request loads the token, and later requests use the cache.
     marketaux = MarketauxToken(token_name, emit=telemetry.emit) if token_name else None
-    if marketaux is not None:
-        os.environ['MARKETAUX_API_TOKEN'] = marketaux.value()
     marketaux_refresh = None
     if marketaux is not None:
         def marketaux_refresh():
