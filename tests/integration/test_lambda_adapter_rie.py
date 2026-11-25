@@ -42,7 +42,6 @@ def emulator():
                  '-v', f'{Path(binary).resolve()}:/aws-lambda-rie:ro',
                  '--entrypoint', '/aws-lambda-rie',
                  '--read-only', '--tmpfs', '/tmp:rw,nosuid,size=128m',
-                 '-e', f'TRADINGVIEW_MCP_PUBLIC_HOST={PUBLIC_HOST}',
                  image, '/app/.venv/bin/python', '-m', 'tradingview_mcp.lambda_server')
     assert run.returncode == 0, run.stderr
     try:
@@ -95,8 +94,9 @@ def test_get_on_mcp_is_405_with_allow_post(emulator):
     assert allow and all(v == 'POST' for v in allow), response
 
 
-def test_unexpected_host_is_421(emulator):
-    assert invoke(emulator, 'wrong_host.json')['statusCode'] == 421
+def test_unexpected_host_is_not_421(emulator):
+    # Host is not checked; API Gateway is the only route to the function.
+    assert invoke(emulator, 'wrong_host.json')['statusCode'] != 421
 
 
 def test_browser_origin_is_403(emulator):

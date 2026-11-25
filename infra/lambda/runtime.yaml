@@ -347,9 +347,6 @@
             "PROXY_ENABLED": {
               "Ref": "ProxyEnabled"
             },
-            "TRADINGVIEW_MCP_PUBLIC_HOST": {
-              "Fn::Sub": "${ApiId}.execute-api.${AWS::Region}.amazonaws.com"
-            },
             "TRADINGVIEW_MCP_DEPLOYMENT_REVISION": {
               "Ref": "DeploymentRevision"
             },

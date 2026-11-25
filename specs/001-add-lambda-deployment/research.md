@@ -26,7 +26,7 @@
 
 ## 3. Preserve exact gateway authority behind the adapter
 
-**Decision**: Keep SDK DNS-rebinding protection enabled with exact loopback/readiness authorities and the supplied API's execute-api hostname (with optional `:443`). Reject Origin headers for this nonbrowser profile and ignore forwarded-host values. No downstream Host rewrite or Function URL hostname pattern is required.
+**Decision (amended 2026-11-25)**: Host is not checked. SDK DNS-rebinding protection is disabled and no execute-api hostname is configured, because API Gateway is the only route to the function and the service must not depend on the API identifier. Origin headers are still rejected for this nonbrowser profile, and forwarded-host values are ignored. No downstream Host rewrite or Function URL hostname pattern is required.
 
 **Rationale**: Adapter 1.1.0 retains the incoming Host header when forwarding to the local process. ApiId/region determine the public hostname before function creation, removing the former generated-URL dependency concern. HTTP API payload 2.0 combines duplicate headers, so former raw-edge duplicate Authorization/Host guarantees cannot be carried over. Restrict the initial profile to an existing auto-deploy `$default` stage and default execute-api endpoint: there is no named-stage/base-path normalization dependency.
 

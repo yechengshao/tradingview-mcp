@@ -116,7 +116,7 @@ def test_logging_failures_do_not_break_requests():
 
 
 def test_invalid_startup_has_safe_json_and_no_optional_monitoring_dependencies():
-    result=subprocess.run([sys.executable,'-m','tradingview_mcp.lambda_server'],env=dict(os.environ,TRADINGVIEW_MCP_PUBLIC_HOST=SECRET),capture_output=True,text=True,timeout=10)
+    result=subprocess.run([sys.executable,'-m','tradingview_mcp.lambda_server'],env=dict(os.environ,PROXY_PORT=SECRET),capture_output=True,text=True,timeout=10)
     assert result.returncode==1 and json.loads(result.stdout)['outcome']=='invalid_configuration'
     assert SECRET not in result.stdout+result.stderr
     import tomllib

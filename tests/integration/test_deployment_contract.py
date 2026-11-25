@@ -120,9 +120,9 @@ def test_rest_runtime_is_function_only_and_leaves_gateway_wiring_to_access():
     assert f['Timeout'] == {'Ref': 'TimeoutSeconds'}
     assert int(t['Parameters']['TimeoutSeconds']['Default']) <= 25
     assert f['Timeout'] and resources['LiveAlias']['Properties']['Name'] == 'live'
-    assert set(t['Parameters']) >= {'RestApiId'} and 'ApiId' not in t['Parameters'] and 'AuthorizerId' not in t['Parameters']
+    assert 'RestApiId' not in t['Parameters'] and 'ApiId' not in t['Parameters'] and 'AuthorizerId' not in t['Parameters']
     variables = f['Environment']['Variables']
-    assert variables['TRADINGVIEW_MCP_PUBLIC_HOST'] == {'Fn::Sub': '${RestApiId}.execute-api.${AWS::Region}.amazonaws.com'}
+    assert 'TRADINGVIEW_MCP_PUBLIC_HOST' not in variables
     assert set(variables) == set(template('runtime')['Resources']['Function']['Properties']['Environment']['Variables'])
     expected = {'FunctionArn', 'AliasArn', 'PublishedVersion', 'ActiveVersion', 'ImageUri', 'SourceCommit',
                 'LockSha256', 'DeploymentRevision', 'LogGroupName'}

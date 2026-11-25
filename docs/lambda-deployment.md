@@ -194,7 +194,7 @@ Status: template and report work are local; no REST stack is deployed. The REST 
 
 **Template:** `infra/lambda/runtime-rest.yaml` creates the function, its log group, execution role, published version and `live` alias. It creates no API Gateway resources, permissions or Function URL.
 
-**Parameters:** `RestApiId` is the base REST API ID from access; the function's public host is `<RestApiId>.execute-api.<region>.amazonaws.com`. `ReservedConcurrency` defaults to 0 (no reservation). `MemorySize` defaults to 2048 MB, which fits the 10-second init window (see `status.md`). Release inputs are `ImageUri` (digest-pinned), `SourceCommit`, `LockSha256` and `DeploymentRevision`.
+**Parameters:** the function takes no API identifier (the service does not check Host; API Gateway is the only route). `ReservedConcurrency` defaults to 0 (no reservation). `MemorySize` defaults to 2048 MB, which fits the 10-second init window (see `status.md`). Release inputs are `ImageUri` (digest-pinned), `SourceCommit`, `LockSha256` and `DeploymentRevision`.
 
 **Outputs for access:** `FunctionArn`, `AliasArn`, `PublishedVersion`, `ActiveVersion`, `ImageUri`, `SourceCommit`, `LockSha256`, `DeploymentRevision` and `LogGroupName`. Access uses the alias ARN to create the invoke permissions.
 

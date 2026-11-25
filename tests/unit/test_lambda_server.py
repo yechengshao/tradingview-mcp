@@ -22,29 +22,29 @@ def test_import_does_not_import_server():
 
 def test_defaults_empty_optional_and_literal_credentials():
     m=module()
-    env=m.validate_environment({'TRADINGVIEW_MCP_PUBLIC_HOST':PUBLIC})
+    env=m.validate_environment({})
     assert len(set(m.APPLICATION_DEFAULTS) & env.keys()) == 9
     assert env['MARKETAUX_API_TOKEN'] == env['PROXY_PASSWORD'] == ''
     assert env['PROXY_PORT']=='80' and env['PROXY_ENABLED']=='true'
     literal=' x"\\$`$(nope) '
-    env=m.validate_environment({'TRADINGVIEW_MCP_PUBLIC_HOST':PUBLIC,'PROXY_PASSWORD':literal})
+    env=m.validate_environment({'PROXY_PASSWORD':literal})
     assert env['PROXY_PASSWORD']==literal
 
 
 @pytest.mark.parametrize('key,value', [('PROXY_PORT','0'),('PROXY_PORT','65536'),
     ('PROXY_SESSION_MIN','251'),('PROXY_ENABLED','yes'),('MARKETAUX_DAILY_BUDGET','-1'),
     ('PROXY_HOST',''),('PROXY_HOST','https://invalid'),('PROXY_PASSWORD','a\x00b'),
-    ('PROXY_PASSWORD','SENSITIVE'*600),('TRADINGVIEW_MCP_PUBLIC_HOST','attacker.example')])
+    ('PROXY_PASSWORD','SENSITIVE'*600)])
 def test_invalid_config_redacts_values(key,value):
     with pytest.raises(ValueError) as exc:
-        module().validate_environment({'TRADINGVIEW_MCP_PUBLIC_HOST':PUBLIC,key:value})
+        module().validate_environment({key:value})
     assert 'SENSITIVE' not in str(exc.value)
     assert 'a\x00b' not in str(exc.value)
 
 
 def test_environment_size_includes_extra_configured_keys():
     with pytest.raises(ValueError):
-        module().validate_environment({'TRADINGVIEW_MCP_PUBLIC_HOST':PUBLIC,'EXTRA':'x'*4096})
+        module().validate_environment({'EXTRA':'x'*4096})
 
 
 async def dummy(scope, receive, send):
@@ -60,8 +60,9 @@ async def dummy(scope, receive, send):
 
 
 @pytest.mark.parametrize('host', ['127.0.0.1:8000','localhost:8000',PUBLIC,PUBLIC+':443'])
-def test_exact_hosts_and_slash_without_auth(host):
-    app=module().LambdaBoundary(dummy,PUBLIC)
+def test_any_host_is_accepted_and_slash_normalized_without_auth(host):
+    # Host is not checked: API Gateway is the only route to the function.
+    app=module().LambdaBoundary(dummy)
     with TestClient(app, base_url='http://'+host) as client:
         r=client.post('/mcp/',json={})
         assert r.status_code==200 and r.json()['path']=='/mcp'
@@ -71,23 +72,22 @@ def test_exact_hosts_and_slash_without_auth(host):
             assert r.status_code==405 and r.headers['allow']=='POST'
 
 
-@pytest.mark.parametrize('headers', [{'host':'evil.example'}, {'host':PUBLIC+'.evil'},
-    {'origin':'null'}, {'origin':'https://'+PUBLIC}, {'host':PUBLIC+',evil'},
-    {'host':PUBLIC,'origin':''}])
-def test_rejected_authority_and_origin(headers):
-    with TestClient(module().LambdaBoundary(dummy,PUBLIC),base_url='http://localhost:8000') as client:
-        assert client.get('/health',headers=headers).status_code in (400,403,421)
+@pytest.mark.parametrize('headers', [{'origin':'null'}, {'origin':'https://'+PUBLIC}, {'origin':''}])
+def test_origin_header_is_still_rejected(headers):
+    with TestClient(module().LambdaBoundary(dummy),base_url='http://localhost:8000') as client:
+        assert client.get('/health',headers=headers).status_code==403
 
 
-def test_forwarded_host_does_not_override_actual_authority():
-    with TestClient(module().LambdaBoundary(dummy,PUBLIC),base_url='http://evil.example') as client:
-        assert client.get('/health',headers={'x-forwarded-host':PUBLIC}).status_code==421
+@pytest.mark.parametrize('headers', [{'host':'evil.example'}, {'host':PUBLIC+'.evil'}, {'x-forwarded-host':PUBLIC}])
+def test_unexpected_host_is_not_a_rejection_reason(headers):
+    with TestClient(module().LambdaBoundary(dummy),base_url='http://localhost:8000') as client:
+        assert client.get('/health',headers=headers).status_code==200
 
 
 @pytest.mark.parametrize('key,value', [('TRADINGVIEW_MCP_ENVIRONMENT','secret-value')])
 def test_observability_configuration_is_validated_without_echo(key,value):
     with pytest.raises(ValueError) as caught:
-        module().validate_environment({'TRADINGVIEW_MCP_PUBLIC_HOST':PUBLIC,key:value})
+        module().validate_environment({key:value})
     assert value not in str(caught.value)
 
 
@@ -95,7 +95,7 @@ def test_startup_emits_bounded_phase_timings_without_configuration_values():
     # Startup phases are timed so cold-start cost can be attributed on Lambda.
     import json as _json
     import subprocess as _sp
-    env = dict(os.environ, TRADINGVIEW_MCP_PUBLIC_HOST=PUBLIC, PROXY_PASSWORD='sentinel-secret-value')
+    env = dict(os.environ, PROXY_PASSWORD='sentinel-secret-value')
     result = _sp.run([sys.executable, '-c', 'from tradingview_mcp.lambda_server import create_app; create_app()'],
                      capture_output=True, env=env, timeout=120)
     assert result.returncode == 0, result.stderr.decode()[-2000:]

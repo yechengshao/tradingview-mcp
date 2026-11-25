@@ -41,7 +41,7 @@ Current total: **58 tasks, 44 checked, 14 unchecked**. Existing REST/publishing/
 
 ## T052 local increment (2026-11-11)
 
-`infra/lambda/runtime-rest.yaml` is the REST-profile service stack: function, log group, log-only role, published version and `live` alias, with no API Gateway resources or invocation permissions. It takes `RestApiId` for the execute-api host and exposes the nine identity and alias outputs that access needs. `tests/integration/test_deployment_contract.py` asserts those invariants, and it passes with the existing contract tests (7). `cfn-lint` passes on the template. Live deployment, and the packaged-adapter checks that T051 still needs, are not run, so T052 stays unchecked.
+`infra/lambda/runtime-rest.yaml` is the REST-profile service stack: function, log group, log-only role, published version and `live` alias, with no API Gateway resources or invocation permissions. It takes no API identifier (amended 2026-11-25: the host check was removed, so the service needs no execute-api name). It exposes the nine identity and alias outputs that access needs. `tests/integration/test_deployment_contract.py` asserts those invariants, and it passes with the existing contract tests (7). `cfn-lint` passes on the template. Live deployment, and the packaged-adapter checks that T051 still needs, are not run, so T052 stays unchecked.
 
 ## Publication workflow test gate (2026-11-11)
 

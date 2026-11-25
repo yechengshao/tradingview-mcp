@@ -151,11 +151,6 @@
         "test",
         "production"
       ]
-    },
-    "RestApiId": {
-      "Type": "String",
-      "AllowedPattern": "[a-z0-9]+",
-      "Description": "Base REST API ID for the execute-api hostname; the stage and gateway attachments belong to the access stack."
     }
   },
   "Conditions": {
@@ -374,9 +369,6 @@
             },
             "PROXY_ENABLED": {
               "Ref": "ProxyEnabled"
-            },
-            "TRADINGVIEW_MCP_PUBLIC_HOST": {
-              "Fn::Sub": "${RestApiId}.execute-api.${AWS::Region}.amazonaws.com"
             },
             "TRADINGVIEW_MCP_DEPLOYMENT_REVISION": {
               "Ref": "DeploymentRevision"

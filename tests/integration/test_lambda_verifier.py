@@ -164,7 +164,6 @@ def test_resolve_target_reads_real_shapes_and_keeps_provider_values_private(fore
         def get_alias(self,**kw):return {'AliasArn':alias,'FunctionVersion':'1'}
         def get_function(self,**kw):
             return {'Code':{'ResolvedImageUri':uri},'Configuration':{'Architectures':['arm64'],'Timeout':25,'Environment':{'Variables':{
-                'TRADINGVIEW_MCP_PUBLIC_HOST':'abc123.execute-api.ca-central-1.amazonaws.com',
                 'TRADINGVIEW_MCP_SOURCE_COMMIT':'c'*40,'TRADINGVIEW_MCP_LOCK_SHA256':'d'*64,
                 'TRADINGVIEW_MCP_DEPLOYMENT_REVISION':'revision','PROXY_PASSWORD':'synthetic-private-provider-value',
                 'MARKETAUX_DAILY_BUDGET':'90','PROXY_ENABLED':'true','PROXY_HOST':'p.webshare.io',

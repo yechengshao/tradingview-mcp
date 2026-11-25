@@ -470,7 +470,6 @@ def resolve_target(session,stack,expected_uri):
     # Keep resolved provider values solely in memory for validation; never evidence.
     from tradingview_mcp.lambda_server import validate_environment,APPLICATION_DEFAULTS
     validate_environment(env)
-    if env['TRADINGVIEW_MCP_PUBLIC_HOST']!=f'{api_id}.execute-api.{region}.amazonaws.com':raise ConfigurationError('Public authority configuration mismatch')
     safe_keys=set(APPLICATION_DEFAULTS)-{'MARKETAUX_API_TOKEN','PROXY_USERNAME_PREFIX','PROXY_PASSWORD'}
     safe={k:env[k] for k in sorted(safe_keys)}
     safe['deployment_revision']=env['TRADINGVIEW_MCP_DEPLOYMENT_REVISION']

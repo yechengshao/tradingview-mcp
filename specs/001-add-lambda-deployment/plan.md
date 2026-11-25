@@ -17,7 +17,7 @@ Serve the existing 39 tools through an isolated ARM64 Lambda image while preserv
 
 Use Python 3.11, pinned MCP 1.29.0, Starlette 0.47.2, Uvicorn 0.35.0, HTTPX 0.28.1, uv 0.13.1 and Lambda Web Adapter 1.1.0. Preserve advertised Python 3.10–3.13 ordinary transports. Monitoring adds no application dependency; native AWS tracing and stdlib-only CloudWatch logging preserve ordinary entrypoints.
 
-lambda_server validates literal native environment before importing the singleton, enables stateless JSON/lifespan and runs one worker on port 8000. Preserve exact execute-api/internal hosts, DNS-rebinding protection, Origin rejection, disabled proxy-header trust, finite responses/notifications, POST-only MCP and slash normalization. Health stays provider-independent. No startup provider/configuration-store read or runtime uv/AWS application SDK.
+lambda_server validates literal native environment before importing the singleton, enables stateless JSON/lifespan and runs one worker on port 8000. Host is not checked (amended 2026-11-25); Origin rejection, disabled proxy-header trust, finite responses/notifications, POST-only MCP and slash normalization. Health stays provider-independent. No startup provider/configuration-store read or runtime uv/AWS application SDK.
 
 Build one immutable native ARM64 image without attestations/index overhead; record source/dirty/lock/config/manifest identity, test under nonroot/read-only root with writable /tmp, then publish that same image. Emulation does not establish native timing.
 

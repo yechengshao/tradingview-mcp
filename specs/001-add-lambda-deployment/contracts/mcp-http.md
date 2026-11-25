@@ -33,7 +33,7 @@ All feature routes, including external health, use the supplied authorizer. Unau
 
 ## Authority, Origin, and Logging
 
-- Supply the exact expected public authority in nonsecret `TRADINGVIEW_MCP_PUBLIC_HOST`, validated before readiness. Use exact allowed authorities: loopback/readiness plus `<ApiId>.execute-api.<AWS_REGION>.amazonaws.com`, optionally `:443`.
+- Amendment (2026-11-25): no public-host check. The service does not read or validate `TRADINGVIEW_MCP_PUBLIC_HOST`, does not reject by Host header, and runs with SDK DNS-rebinding protection disabled. API Gateway is the only route to the function (no Function URL, no public invoke permission), so the service needs no API identifier at deploy time. Origin rejection, POST-only MCP, slash normalization and the no-auth boundary still apply.
 - Keep SDK DNS-rebinding protection enabled; reject Origin headers for supported nonbrowser clients and ignore forwarded authority headers. Do not disable security globally or rewrite a Function URL hostname.
 - HTTP API payload 2.0 combines duplicate headers. No raw-edge duplicate-header guarantee is made by the service; credential parsing belongs to the supplied authorizer.
 - Lifespan scopes pass through transport wrappers unchanged; Uvicorn uses one worker with proxy headers disabled.

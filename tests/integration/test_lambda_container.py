@@ -61,7 +61,7 @@ def test_image_finite_mcp_health_and_method_boundary(image):
     name='mcp-test-'+uuid.uuid4().hex[:12]
     try:
         r=docker('run','-d','--name',name,'--read-only','--tmpfs','/tmp:rw,nosuid,size=128m',
-            '-p','127.0.0.1::8000','-e','TRADINGVIEW_MCP_PUBLIC_HOST=abc123.execute-api.ca-central-1.amazonaws.com',image)
+            '-p','127.0.0.1::8000',image)
         assert r.returncode==0,r.stderr
         mapping=docker('port',name,'8000/tcp').stdout.strip()
         url='http://'+mapping
@@ -121,7 +121,7 @@ uvicorn.run(app,host='0.0.0.0',port=8000,log_level='critical',access_log=False)
 '''.replace('FAILED',str(failed))
         try:
             r=docker('run','-d','--name',name,'--read-only','--tmpfs','/tmp:rw,nosuid,size=128m',
-                '-p','127.0.0.1::8000','-e','TRADINGVIEW_MCP_PUBLIC_HOST=abc123.execute-api.ca-central-1.amazonaws.com',
+                '-p','127.0.0.1::8000',
                 '--entrypoint','/app/.venv/bin/python',image,'-c',code)
             assert r.returncode==0,r.stderr
             url='http://'+docker('port',name,'8000/tcp').stdout.strip()
@@ -137,7 +137,7 @@ uvicorn.run(app,host='0.0.0.0',port=8000,log_level='critical',access_log=False)
             assert actual['results']==expected
             for _ in range(10):
                 assert httpx.get(url+'/health',headers={'host':'localhost:8000'},timeout=5).json()=={'status':'ok'}
-            assert httpx.post(url+'/mcp/',headers={'host':'evil.example'},json={}).status_code==421
+            assert httpx.post(url+'/mcp/',headers={'host':'evil.example'},json={}).status_code!=421
             assert httpx.post(url+'/mcp/',headers={'host':'localhost:8000','origin':'null'},json={}).status_code==403
             headers={'host':'localhost:8000','accept':'application/json, text/event-stream'}
             oversized=httpx.post(url+'/mcp',headers=headers,json={'padding':'x'*(4*1024*1024)},timeout=10)

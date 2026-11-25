@@ -12,7 +12,7 @@ APPLICATION_DEFAULTS = {
     'PROXY_ENABLED':'true',
 }
 CONFIGURED_KEYS = set(APPLICATION_DEFAULTS) | {
-    'TRADINGVIEW_MCP_PUBLIC_HOST','TRADINGVIEW_MCP_DEPLOYMENT_REVISION',
+    'TRADINGVIEW_MCP_DEPLOYMENT_REVISION',
     'TRADINGVIEW_MCP_SOURCE_COMMIT','TRADINGVIEW_MCP_LOCK_SHA256',
     'AWS_LWA_PORT','AWS_LWA_READINESS_CHECK_PATH','AWS_LWA_READINESS_CHECK_HEALTHY_STATUS',
     'AWS_LWA_INVOKE_MODE','PYTHONDONTWRITEBYTECODE','PYTHONUNBUFFERED','HOME','TMPDIR','UV_CACHE_DIR',
@@ -21,7 +21,6 @@ OBSERVABILITY_DEFAULTS = {
     'TRADINGVIEW_MCP_ENVIRONMENT': 'development',
 }
 CONFIGURED_KEYS.update(OBSERVABILITY_DEFAULTS)
-PUBLIC_HOST = re.compile(r'[a-z0-9]+\.execute-api\.[a-z]{2}(?:-[a-z0-9]+)+-\d\.amazonaws\.com')
 
 
 def validate_environment(source: Mapping[str,str]) -> dict[str,str]:
@@ -31,9 +30,6 @@ def validate_environment(source: Mapping[str,str]) -> dict[str,str]:
     platform variables itself; these do not consume the configured 4-KB allowance.
     """
     env = APPLICATION_DEFAULTS | OBSERVABILITY_DEFAULTS | dict(source)
-    public = env.get('TRADINGVIEW_MCP_PUBLIC_HOST','')
-    if not PUBLIC_HOST.fullmatch(public):
-        raise ValueError('Invalid TRADINGVIEW_MCP_PUBLIC_HOST authority')
     if any(not isinstance(v,str) or '\x00' in v for v in env.values()):
         raise ValueError('Environment values must be literal NUL-free strings')
     def integer(key, low, high=None):
@@ -61,22 +57,21 @@ def validate_environment(source: Mapping[str,str]) -> dict[str,str]:
 
 
 class LambdaBoundary:
-    """Exact authority/origin/method policy; passes SDK lifespan through unchanged."""
-    def __init__(self, app, public_host):
+    """Origin/method policy; passes SDK lifespan through unchanged.
+
+    Host is not checked: API Gateway is the only route to the function (no Function URL,
+    no public invoke permission), so the service does not need the API's execute-api name.
+    """
+    def __init__(self, app):
         self.app=app
-        self.hosts={public_host,public_host+':443','localhost','localhost:8000',
-                    '127.0.0.1','127.0.0.1:8000','[::1]','[::1]:8000'}
 
     async def __call__(self,scope,receive,send):
         if scope['type']!='http':
             return await self.app(scope,receive,send)
         headers=scope.get('headers',[])
-        hosts=[v.decode('latin-1') for k,v in headers if k.lower()==b'host']
         status=None
         allow=[]
-        if len(hosts)!=1 or hosts[0] not in self.hosts:
-            status=421
-        elif any(k.lower()==b'origin' for k,_ in headers):
+        if any(k.lower()==b'origin' for k,_ in headers):
             status=403
         elif scope['path'] in ('/mcp','/mcp/'):
             if scope['method']!='POST':
@@ -116,14 +111,13 @@ def create_app():
     from mcp.server.transport_security import TransportSecuritySettings
     if mcp._session_manager is not None:
         raise RuntimeError('Lambda application must be created once per process')
-    boundary_hosts=LambdaBoundary(None,env['TRADINGVIEW_MCP_PUBLIC_HOST']).hosts
     mcp.settings.stateless_http=True
     mcp.settings.json_response=True
     mcp.settings.transport_security=TransportSecuritySettings(
-        enable_dns_rebinding_protection=True,allowed_hosts=sorted(boundary_hosts),allowed_origins=[])
+        enable_dns_rebinding_protection=False,allowed_hosts=[],allowed_origins=[])
     telemetry.wrap_tools(mcp._tool_manager)
     begin = phase('configure_mcp', begin)
-    app = ObservedApp(LambdaBoundary(mcp.streamable_http_app(),env['TRADINGVIEW_MCP_PUBLIC_HOST']), telemetry)
+    app = ObservedApp(LambdaBoundary(mcp.streamable_http_app()), telemetry)
     phase('build_http_app', begin)
     for name, ms in timings:
         telemetry.emit('INFO', operation='startup.phase', outcome=name, duration_ms=ms)

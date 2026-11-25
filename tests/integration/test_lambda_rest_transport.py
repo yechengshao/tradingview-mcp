@@ -111,8 +111,9 @@ def test_get_on_mcp_is_rejected_with_allow_post(url):
     assert response.headers['allow'] == 'POST'
 
 
-def test_unexpected_host_is_rejected_before_mcp(url):
-    assert send_event(url, load('wrong_host.json')).status_code == 421
+def test_unexpected_host_is_not_rejected_by_the_service(url):
+    # Host is not checked; API Gateway is the only route to the function.
+    assert send_event(url, load('wrong_host.json')).status_code != 421
 
 
 def test_browser_origin_is_rejected(url):

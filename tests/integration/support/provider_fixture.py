@@ -47,7 +47,7 @@ def clean_env(source):
     # No inherited AWS/provider/client credentials in deterministic children.
     return {'PATH': os.environ['PATH'], 'PYTHONPATH': str(source / 'src'),
             'HOME': tempfile.gettempdir(), 'PYTHONUNBUFFERED': '1',
-            'TRADINGVIEW_MCP_PUBLIC_HOST': 'example123.execute-api.ca-central-1.amazonaws.com'}
+            }
 
 
 @contextmanager
