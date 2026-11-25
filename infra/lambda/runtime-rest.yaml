@@ -2,6 +2,16 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "Service-only TradingView MCP Lambda runtime for the REST profile. Creates no API Gateway resources; access owns REST attachments, stage and permissions. Stack name must match [A-Za-z][A-Za-z0-9-]{0,47}.",
   "Parameters": {
+    "Environment": {
+      "Type": "String",
+      "AllowedValues": [
+        "development",
+        "test",
+        "production"
+      ],
+      "Default": "test",
+      "Description": "Environment segment of the published SSM parameter name."
+    },
     "ImageUri": {
       "Type": "String",
       "AllowedPattern": "[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._/-]+@sha256:[a-f0-9]{64}"
@@ -448,6 +458,20 @@
             }
           ]
         }
+      }
+    },
+    "ServiceAliasParameter": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "/mcp/${Environment}/service/alias-arn"
+        },
+        "Type": "String",
+        "Tier": "Standard",
+        "Value": {
+          "Ref": "LiveAlias"
+        },
+        "Description": "Live service alias ARN consumed by the access gateway at deploy time."
       }
     }
   },

@@ -113,7 +113,7 @@ def test_rest_runtime_is_function_only_and_leaves_gateway_wiring_to_access():
                       'AWS::ApiGateway::Resource', 'AWS::ApiGateway::Deployment', 'AWS::ApiGateway::RestApi',
                       'AWS::Lambda::Permission', 'AWS::Lambda::Url', 'AWS::Cognito::UserPool']:
         assert forbidden not in types
-    assert {'LogGroup', 'ExecutionRole', 'Function', 'PublishedVersion', 'LiveAlias'} == set(resources)
+    assert {'LogGroup', 'ExecutionRole', 'Function', 'PublishedVersion', 'LiveAlias', 'ServiceAliasParameter'} == set(resources)
     f = resources['Function']['Properties']
     assert f['Architectures'] == ['arm64'] and f['PackageType'] == 'Image' and 'VpcConfig' not in f
     assert '@sha256:' in t['Parameters']['ImageUri']['AllowedPattern']
@@ -212,3 +212,15 @@ def test_rest_runtime_has_no_cross_stack_imports():
     assert 'ImportValue' not in text
     for name in ('AccessRoleArn', 'AccessFunctionArn', 'AuthorizerFunctionArn', 'AccessTable'):
         assert name not in text, name
+
+
+def test_rest_runtime_publishes_live_alias_under_shared_parameter_convention():
+    # T059: the access gateway resolves this parameter at deploy time; the service runtime reads none.
+    t = template('runtime-rest')
+    parameter = t['Resources']['ServiceAliasParameter']
+    assert parameter['Type'] == 'AWS::SSM::Parameter' and parameter['Properties']['Type'] == 'String'
+    assert parameter['Properties']['Tier'] == 'Standard'
+    assert parameter['Properties']['Name'] == {'Fn::Sub': '/mcp/${Environment}/service/alias-arn'}
+    assert parameter['Properties']['Value'] == {'Ref': 'LiveAlias'}
+    assert t['Parameters']['Environment']['AllowedValues'] == ['development', 'test', 'production']
+    assert 'ssm:' not in json.dumps(t['Resources']['ExecutionRole'])
