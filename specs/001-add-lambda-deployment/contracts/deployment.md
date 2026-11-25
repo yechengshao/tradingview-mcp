@@ -48,7 +48,7 @@ Defaults: memory 1024 MiB, Lambda timeout 25 seconds (1–25), temporary storage
 
 ## Native application environment contract
 
-All nine `.env.example` keys are native Lambda Environment.Variables; the authoritative matrix is in [data-model.md](../data-model.md). The template merges these values with adapter/release settings in the complete environment map. Lambda supplies the values before startup; existing service code reads them normally. No entrypoint/startup retrieval hook, SDK addition, external configuration-store resource, or extra runtime permission is required. `.env` files and credentials are excluded from the image/build context.
+All nine `.env.example` keys are native Lambda Environment.Variables; the authoritative matrix is in [data-model.md](../data-model.md). The template merges these values with adapter/release settings in the complete environment map. Lambda supplies the values before startup; existing service code reads them normally. No entrypoint/startup retrieval hook, SDK addition, external configuration-store resource, or extra runtime permission is required, except the Marketaux SecureString read amended 2026-11-25 (boto3 pinned; ssm:GetParameter on the exact parameter; kms:Decrypt via SSM). `.env` files and credentials are excluded from the image/build context.
 
 Ordinary deployment inputs: MarketauxDailyBudget → MARKETAUX_DAILY_BUDGET (`90`); ProxyEnabled → PROXY_ENABLED (`true`); ProxyHost → PROXY_HOST (`p.webshare.io`); ProxyPort → PROXY_PORT (`80`); ProxySessionMin → PROXY_SESSION_MIN (`1`); ProxySessionMax → PROXY_SESSION_MAX (`250`). Validate nonnegative budget, literal booleans, hostname/port, and positive ordered session bounds. The daily news budget remains process-local, not a shared daily quota.
 

@@ -61,13 +61,17 @@ class LambdaBoundary:
 
     Host is not checked: API Gateway is the only route to the function (no Function URL,
     no public invoke permission), so the service does not need the API's execute-api name.
+    ``before_http`` runs before each HTTP request (used to refresh the Marketaux token).
     """
-    def __init__(self, app):
+    def __init__(self, app, before_http=None):
         self.app=app
+        self.before_http=before_http
 
     async def __call__(self,scope,receive,send):
         if scope['type']!='http':
             return await self.app(scope,receive,send)
+        if self.before_http is not None:
+            self.before_http()
         headers=scope.get('headers',[])
         status=None
         allow=[]
@@ -104,6 +108,19 @@ def create_app():
         os.environ[key]=env[key]
     from tradingview_mcp.observability import configure, ObservedApp
     telemetry = configure(env)
+    # The Marketaux token may come from SSM (one SecureString, refreshed while running); otherwise
+    # the native MARKETAUX_API_TOKEN variable stays authoritative (local and Docker runs).
+    from tradingview_mcp.lambda_secrets import MarketauxToken, parameter_name_from
+    token_name = parameter_name_from(os.environ)
+    marketaux = MarketauxToken(token_name, emit=telemetry.emit) if token_name else None
+    if marketaux is not None:
+        os.environ['MARKETAUX_API_TOKEN'] = marketaux.value()
+    marketaux_refresh = None
+    if marketaux is not None:
+        def marketaux_refresh():
+            value = marketaux.value()
+            if os.environ.get('MARKETAUX_API_TOKEN') != value:
+                os.environ['MARKETAUX_API_TOKEN'] = value
     # Import only after environment validation. No cloud/store/provider startup call.
     begin = phase('import_observability', begin)
     from tradingview_mcp.server import mcp
@@ -117,7 +134,7 @@ def create_app():
         enable_dns_rebinding_protection=False,allowed_hosts=[],allowed_origins=[])
     telemetry.wrap_tools(mcp._tool_manager)
     begin = phase('configure_mcp', begin)
-    app = ObservedApp(LambdaBoundary(mcp.streamable_http_app()), telemetry)
+    app = ObservedApp(LambdaBoundary(mcp.streamable_http_app(), before_http=marketaux_refresh), telemetry)
     phase('build_http_app', begin)
     for name, ms in timings:
         telemetry.emit('INFO', operation='startup.phase', outcome=name, duration_ms=ms)

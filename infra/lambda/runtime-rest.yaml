@@ -120,11 +120,6 @@
         3653
       ]
     },
-    "MarketauxApiToken": {
-      "Type": "String",
-      "Default": "",
-      "NoEcho": true
-    },
     "ProxyUsernamePrefix": {
       "Type": "String",
       "Default": "",
@@ -288,6 +283,33 @@
                 "Ref": "AWS::NoValue"
               }
             ]
+          },
+          {
+            "PolicyName": "MarketauxTokenRead",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "ssm:GetParameter",
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/mcp/${Environment}/service/marketaux-api-token"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "kms:Decrypt",
+                  "Resource": "*",
+                  "Condition": {
+                    "StringEquals": {
+                      "kms:ViaService": {
+                        "Fn::Sub": "ssm.${AWS::Region}.amazonaws.com"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
           }
         ]
       }
@@ -343,9 +365,6 @@
         },
         "Environment": {
           "Variables": {
-            "MARKETAUX_API_TOKEN": {
-              "Ref": "MarketauxApiToken"
-            },
             "MARKETAUX_DAILY_BUDGET": {
               "Ref": "MarketauxDailyBudget"
             },
@@ -390,6 +409,9 @@
             "UV_CACHE_DIR": "/tmp/uv",
             "TRADINGVIEW_MCP_ENVIRONMENT": {
               "Ref": "ObservabilityEnvironment"
+            },
+            "MARKETAUX_API_TOKEN_PARAMETER": {
+              "Fn::Sub": "/mcp/${Environment}/service/marketaux-api-token"
             }
           }
         },

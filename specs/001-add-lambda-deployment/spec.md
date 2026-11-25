@@ -12,7 +12,7 @@ Run the existing 39 TradingView MCP tools on Lambda while preserving Docker, loc
 - Service handles finite, stateless JSON request/response interactions and internal health checks.
 - [Spec 002](../../../mcp-auth-subscriptions/specs/002-authentication-api-access/spec.md) owns Cognito, request-driven onboarding, REST API, authorization and usage plans. [Spec 003](../../../mcp-auth-subscriptions/specs/003-billing-subscriptions/spec.md) owns billing Lambda/DynamoDB/Stripe.
 - MCP implements no authentication/billing and receives no related credentials, storage access or permissions.
-- All nine provider settings use native Lambda environment variables; no startup retrieval hook.
+- All nine provider settings use native Lambda environment variables; no startup retrieval hook, except the Marketaux token (see amendment). (Amended 2026-11-25, Service Decoupling: the Marketaux token alone is read at runtime from one SSM SecureString through a single pinned boto3 call; see the amendment below.)
 - REST is the new target. Existing HTTP API implementation/report v1 remains a separate legacy profile; see [REST handoff](contracts/rest-migration.md).
 - Long-lived streams, server notifications, persistent sessions and new tool business logic are outside scope.
 
@@ -80,3 +80,7 @@ Operators supply account/region, permissions, optional provider values and eligi
 [Plan](plan.md) · [Tasks](tasks.md) · [Configuration/evidence model](data-model.md) · [Deployment contract](contracts/deployment.md) · [Operator guide](../../docs/lambda-deployment.md)
 
 Observability implementation and operator checks follow the [MCP observability contract](contracts/observability.md).
+
+## Amendment: Marketaux token read from SSM (2026-11-25)
+
+Decision: the Marketaux API token is the one exception to the native-environment rule. The REST runtime reads the SecureString `/mcp/<environment>/service/marketaux-api-token` through a single boto3 call (`src/tradingview_mcp/lambda_secrets.py`, boto3 pinned exactly), at startup and again when its five-minute cache expires. Rotation therefore needs only an SSM update, not a redeploy. The IAM grant is `ssm:GetParameter` on that exact parameter and `kms:Decrypt` only through `ssm.<region>.amazonaws.com`. Other provider settings remain native Lambda environment variables. A failed refresh keeps the last good value and logs only the error class.

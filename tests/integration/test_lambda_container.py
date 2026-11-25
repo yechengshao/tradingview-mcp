@@ -37,7 +37,7 @@ def test_image_readonly_storage_files_and_credential_exclusion(image):
     code='''import os,pathlib,json
 assert pathlib.Path('/opt/extensions/lambda-adapter').is_file()
 import tradingview_mcp,importlib.util
-assert importlib.util.find_spec('boto3') is None
+assert importlib.util.find_spec('boto3') is not None  # used only by lambda_secrets.py
 assert importlib.util.find_spec('cfnlint') is None
 root=pathlib.Path(tradingview_mcp.__file__).parent
 assert list((root/'coinlist').glob('*.txt'))

@@ -123,7 +123,9 @@ def test_rest_runtime_is_function_only_and_leaves_gateway_wiring_to_access():
     assert 'RestApiId' not in t['Parameters'] and 'ApiId' not in t['Parameters'] and 'AuthorizerId' not in t['Parameters']
     variables = f['Environment']['Variables']
     assert 'TRADINGVIEW_MCP_PUBLIC_HOST' not in variables
-    assert set(variables) == set(template('runtime')['Resources']['Function']['Properties']['Environment']['Variables'])
+    legacy = set(template('runtime')['Resources']['Function']['Properties']['Environment']['Variables'])
+    # The REST profile reads the Marketaux token from SSM; the legacy profile keeps its native variable.
+    assert set(variables) == (legacy - {'MARKETAUX_API_TOKEN'}) | {'MARKETAUX_API_TOKEN_PARAMETER'}
     expected = {'FunctionArn', 'AliasArn', 'PublishedVersion', 'ActiveVersion', 'ImageUri', 'SourceCommit',
                 'LockSha256', 'DeploymentRevision', 'LogGroupName'}
     assert set(t['Outputs']) == expected
@@ -150,7 +152,10 @@ def test_rest_runtime_defaults_to_memory_that_fits_lambda_init_window():
 
 # T047/T050 audit: the MCP service must not reach any AWS, billing or identity service (spec 001 boundary).
 FORBIDDEN_IMPORTS = {'boto3', 'botocore', 'aiobotocore', 'awscrt', 'stripe', 'jwt', 'jose', 'authlib', 'cognito_idp'}
-ALLOWED_RUNTIME_ACTIONS = {'logs:CreateLogStream', 'logs:PutLogEvents', 'xray:PutTraceSegments', 'xray:PutTelemetryRecords'}
+# boto3 is permitted only in lambda_secrets.py: one SSM SecureString read (spec 001 Service Decoupling amendment).
+PERMITTED_SDK_MODULE = ('boto3', 'lambda_secrets.py')
+ALLOWED_RUNTIME_ACTIONS = {'logs:CreateLogStream', 'logs:PutLogEvents', 'xray:PutTraceSegments', 'xray:PutTelemetryRecords',
+    'ssm:GetParameter', 'kms:Decrypt'}
 
 
 def _collect_actions(node, acc):
@@ -178,7 +183,8 @@ def test_service_source_imports_no_aws_billing_or_identity_sdk():
             elif isinstance(node, ast.ImportFrom) and node.module:
                 names = [node.module]
             for name in names:
-                if name.split('.')[0] in FORBIDDEN_IMPORTS:
+                root_module = name.split('.')[0]
+                if root_module in FORBIDDEN_IMPORTS and (root_module, path.name) != PERMITTED_SDK_MODULE:
                     offenders.append(f'{path.name}:{name}')
     assert offenders == []
 
@@ -223,4 +229,7 @@ def test_rest_runtime_publishes_live_alias_under_shared_parameter_convention():
     assert parameter['Properties']['Name'] == {'Fn::Sub': '/mcp/${Environment}/service/alias-arn'}
     assert parameter['Properties']['Value'] == {'Ref': 'LiveAlias'}
     assert t['Parameters']['Environment']['AllowedValues'] == ['development', 'test', 'production']
-    assert 'ssm:' not in json.dumps(t['Resources']['ExecutionRole'])
+    actions = [a for p in t['Resources']['ExecutionRole']['Properties']['Policies'] if isinstance(p, dict) and 'PolicyDocument' in p
+               for s in p['PolicyDocument']['Statement'] for a in ([s['Action']] if isinstance(s['Action'], str) else s['Action'])]
+    assert 'ssm:GetParameter' in actions and not any(a.startswith('ssm:') and a != 'ssm:GetParameter' for a in actions)
+    assert 'ssm:*' not in actions
